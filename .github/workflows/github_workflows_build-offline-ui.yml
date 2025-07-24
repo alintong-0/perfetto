@@ -1,0 +1,61 @@
+name: Build & Release Perfetto Offline UI
+
+on:
+  workflow_dispatch: # 手动按钮触发
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install build deps
+        run: sudo apt-get update && sudo apt-get install -y build-essential clang pkg-config git
+
+      - name: Install depot_tools
+        run: |
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+          echo "${GITHUB_WORKSPACE}/depot_tools" >> $GITHUB_PATH
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt || true
+
+      - name: Build Perfetto UI
+        run: |
+          tools/gn gen out/ui
+          tools/ninja -C out/ui ui
+
+      - name: Zip offline UI
+        run: |
+          cd out/ui
+          zip -r perfetto-offline-ui.zip dist
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: perfetto-ui-${{ github.run_number }}
+          name: Perfetto UI Release ${{ github.run_number }}
+          body: |
+            自动构建的 Perfetto 离线 UI。
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload offline UI to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: perfetto-ui-${{ github.run_number }}
+          files: out/ui/perfetto-offline-ui.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
