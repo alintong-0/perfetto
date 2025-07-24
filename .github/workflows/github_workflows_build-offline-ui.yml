@@ -1,7 +1,7 @@
 name: Build & Release Perfetto Offline UI
 
 on:
-  workflow_dispatch: # 手动按钮触发
+  workflow_dispatch:
 
 jobs:
   build-and-release:
@@ -28,8 +28,8 @@ jobs:
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
           echo "${GITHUB_WORKSPACE}/depot_tools" >> $GITHUB_PATH
 
-      - name: Install Python deps
-        run: pip install -r requirements.txt || true
+      - name: Install perfetto build deps (gn/ninja etc)
+        run: tools/install-build-deps --ui
 
       - name: Build Perfetto UI
         run: |
@@ -42,20 +42,12 @@ jobs:
           zip -r perfetto-offline-ui.zip dist
 
       - name: Create Release
-        id: create_release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: perfetto-ui-${{ github.run_number }}
           name: Perfetto UI Release ${{ github.run_number }}
           body: |
             自动构建的 Perfetto 离线 UI。
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload offline UI to Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: perfetto-ui-${{ github.run_number }}
           files: out/ui/perfetto-offline-ui.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
