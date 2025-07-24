@@ -38,7 +38,7 @@ jobs:
 
       - name: Zip offline UI
         run: |
-          cd out/ui
+          cd out/ui/ui
           zip -r perfetto-offline-ui.zip dist
 
       - name: Create Release
@@ -48,6 +48,6 @@ jobs:
           name: Perfetto UI Release ${{ github.run_number }}
           body: |
             自动构建的 Perfetto 离线 UI。
-          files: out/ui/perfetto-offline-ui.zip
+          files: out/ui/ui/perfetto-offline-ui.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
