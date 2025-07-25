@@ -12,20 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {createAggregationTab} from '../../components/aggregation_adapter';
-import {PerfettoPlugin} from '../../public/plugin';
-import {Trace} from '../../public/trace';
-import {PowerCounterSelectionAggregator} from './power_counter_selection_aggregator';
+@import "../../../../assets/widgets/theme";
 
-/**
- * This plugin adds the aggregations for power rail counter tracks.
- */
-export default class implements PerfettoPlugin {
-  static readonly id = 'dev.perfetto.PowerAggregations';
+.pf-exp-filters-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
 
-  async onTraceLoad(ctx: Trace): Promise<void> {
-    ctx.selection.registerAreaSelectionTab(
-      createAggregationTab(ctx, new PowerCounterSelectionAggregator(), 200),
-    );
+  .pf-exp-filters-title {
+    font-size: 1.2em;
+    font-weight: 500;
+    margin: 0;
   }
+
+  .pf-text-input {
+    flex: 1;
+  }
+}
+
+.pf-exp-filter-editor-box {
+  padding: 1rem;
+  margin-top: 1rem;
+  border-radius: 6px;
+  background-color: transparent;
+  border: 1px solid $pf-minimal-border;
+}
+
+.pf-exp-filter-editor {
+  @extend .pf-exp-editor;
 }
