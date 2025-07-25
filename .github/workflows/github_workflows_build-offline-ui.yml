@@ -34,12 +34,7 @@ jobs:
       - name: Install perfetto build deps (gn/ninja etc)
         run: |
           tools/install-build-deps --ui
-
-      - name: Install UI dependencies
-        run: |
-          cd ui
-          yarn install --frozen-lockfile || npm install
-
+          
       - name: GN Generate
         run: tools/gn gen out/ui
 
