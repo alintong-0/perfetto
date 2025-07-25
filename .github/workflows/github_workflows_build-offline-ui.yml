@@ -1,4 +1,4 @@
-name: Build & Release Perfetto Offline UI
+name: Build & Release Perfetto UI
 
 on:
   workflow_dispatch:
@@ -9,6 +9,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # 允许在 Actions 页面用下拉选择分支
+          ref: ${{ github.ref_name }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -21,7 +24,7 @@ jobs:
           node-version: '20'
 
       - name: Install build deps
-        run: sudo apt-get update && sudo apt-get install -y build-essential clang pkg-config git
+        run: sudo apt-get update && sudo apt-get install -y build-essential clang pkg-config git python3-pip
 
       - name: Install depot_tools
         run: |
@@ -29,25 +32,45 @@ jobs:
           echo "${GITHUB_WORKSPACE}/depot_tools" >> $GITHUB_PATH
 
       - name: Install perfetto build deps (gn/ninja etc)
-        run: tools/install-build-deps --ui
-
-      - name: Build Perfetto UI
         run: |
-          tools/gn gen out/ui
-          tools/ninja -C out/ui ui
+          tools/install-build-deps --ui
+
+      - name: Install UI dependencies
+        run: |
+          cd ui
+          yarn install --frozen-lockfile || npm install
+
+      - name: GN Generate
+        run: tools/gn gen out/ui
+
+      - name: Ninja Build (with verbose)
+        run: tools/ninja -v -C out/ui ui
+
+      - name: Detect Perfetto UI version
+        id: perfetto_version
+        run: |
+          cd out/ui/ui/dist
+          ver=$(ls -d v* | head -n1)
+          echo "version=$ver" >> $GITHUB_OUTPUT
+
+      - name: List dist files
+        run: ls -l out/ui/ui/dist/${{ steps.perfetto_version.outputs.version }} || true
+
+      - name: Print last 100 lines of ninja log (debug)
+        run: tail -n 100 out/ui/.ninja_log || true
 
       - name: Zip offline UI
         run: |
-          cd out/ui/ui
-          zip -r perfetto-offline-ui.zip dist
+          cd out/ui/ui/dist
+          zip -r perfetto-ui-${{ steps.perfetto_version.outputs.version }}-${{ github.ref_name }}.zip ${{ steps.perfetto_version.outputs.version }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: perfetto-ui-${{ github.run_number }}
-          name: Perfetto UI Release ${{ github.run_number }}
+          tag_name: perfetto-ui-${{ steps.perfetto_version.outputs.version }}-${{ github.ref_name }}
+          name: Perfetto UI ${{ steps.perfetto_version.outputs.version }} (${{ github.ref_name }})
           body: |
-            自动构建的 Perfetto 离线 UI。
-          files: out/ui/ui/perfetto-offline-ui.zip
+            自动构建的 Perfetto 离线 UI 包，基于分支: ${{ github.ref_name }}
+          files: out/ui/ui/dist/perfetto-ui-${{ steps.perfetto_version.outputs.version }}-${{ github.ref_name }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
