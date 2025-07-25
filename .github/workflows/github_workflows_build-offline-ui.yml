@@ -36,7 +36,7 @@ jobs:
           tools/install-build-deps --ui
           
       - name: GN Generate
-        run: tools/gn gen out/ui
+        run: tools/gn gen out/ui --args='wasm_trace_processor_memory64=true'
 
       - name: Ninja Build (with verbose)
         run: tools/ninja -v -C out/ui ui
