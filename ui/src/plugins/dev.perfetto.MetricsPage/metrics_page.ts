@@ -285,7 +285,8 @@ query: {
       '.pf-metricsv2-page',
       'Provide metric v2 spec in prototext format ',
       m(Editor, {
-        text: this.text,
+        generation: attrs.editorGeneration,
+        initialText: this.text,
         onExecute: (text: string) => {
           this.text = text;
           getMetricV2(attrs.engine, `metric_spec: {${text}}`, 'prototext')
@@ -347,20 +348,17 @@ export class MetricsPage implements m.ClassComponent<MetricsPageAttrs> {
     const json = v1Controller.resultAsJson;
     return m(
       '.metrics-page',
-      m(
-        '',
-        m(SegmentedButtons, {
-          options: [{label: 'Metric v1'}, {label: 'Metric v2'}],
-          selectedOption: this.mode === 'V1' ? 0 : 1,
-          onOptionSelected: (num) => {
-            if (num === 0) {
-              this.mode = 'V1';
-            } else {
-              this.mode = 'V2';
-            }
-          },
-        }),
-      ),
+      m(SegmentedButtons, {
+        options: [{label: 'Metric v1'}, {label: 'Metric v2'}],
+        selectedOption: this.mode === 'V1' ? 0 : 1,
+        onOptionSelected: (num) => {
+          if (num === 0) {
+            this.mode = 'V1';
+          } else {
+            this.mode = 'V2';
+          }
+        },
+      }),
       this.mode === 'V1' &&
         m(MetricV1Fetcher, {
           controller: v1Controller,

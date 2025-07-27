@@ -364,10 +364,6 @@ class JsonExporter {
       }
     }
 
-    void WriteTraceConfigString(const char* value) {
-      metadata_["trace-config"] = value;
-    }
-
     void AppendTelemetryMetadataString(const char* key, const char* value) {
       metadata_["telemetry"][key].append(value);
     }
@@ -551,11 +547,6 @@ class JsonExporter {
       return set_id ? *args_sets_.Find(*set_id) : empty_value_;
     }
 
-    std::optional<int64_t> GetLegacyTraceSourceId(ArgSetId set_id) const {
-      auto* ptr = legacy_trace_ids_.Find(set_id);
-      return ptr ? std::make_optional(*ptr) : std::nullopt;
-    }
-
    private:
     Json::Value VariadicToJson(Variadic variadic) {
       switch (variadic.type) {
@@ -648,15 +639,6 @@ class JsonExporter {
           }
         }
 
-        if (args.isMember("legacy_trace_source_id")) {
-          const Json::Value& legacy_trace_source_id =
-              args["legacy_trace_source_id"];
-          if (legacy_trace_source_id.isInt64()) {
-            legacy_trace_ids_[it.key()] = legacy_trace_source_id.asInt64();
-            args.removeMember("legacy_trace_source_id");
-          }
-        }
-
         // Rename source fields.
         if (args.isMember("task")) {
           if (args["task"].isMember("posted_from")) {
@@ -685,7 +667,6 @@ class JsonExporter {
 
     const TraceStorage* storage_;
     base::FlatHashMap<ArgSetId, Json::Value> args_sets_;
-    base::FlatHashMap<ArgSetId, int64_t> legacy_trace_ids_;
     const Json::Value empty_value_;
     const Json::Value nan_value_;
     const Json::Value inf_value_;
@@ -835,12 +816,6 @@ class JsonExporter {
         event["args"].removeMember(kLegacyEventArgsKey);
       }
 
-      std::optional<int64_t> legacy_trace_source_id;
-      if (it.arg_set_id()) {
-        legacy_trace_source_id =
-            args_builder_.GetLegacyTraceSourceId(*it.arg_set_id());
-      }
-
       // To prevent duplicate export of slices, only export slices on descriptor
       // or chrome tracks (i.e. TrackEvent slices). Slices on other tracks may
       // also be present as raw events and handled by trace_to_text. Only add
@@ -937,7 +912,7 @@ class JsonExporter {
         }
         writer_.WriteCommonEvent(event);
       } else if (is_child_track ||
-                 (legacy_chrome_track && legacy_trace_source_id)) {
+                 (legacy_chrome_track && track_args->isMember("trace_id"))) {
         // Async event slice.
         if (legacy_chrome_track) {
           // Legacy async tracks are always process-associated and have args.
@@ -951,10 +926,11 @@ class JsonExporter {
 
           // Preserve original event IDs for legacy tracks. This is so that e.g.
           // memory dump IDs show up correctly in the JSON trace.
-          PERFETTO_DCHECK(legacy_trace_source_id);
+          PERFETTO_DCHECK(track_args->isMember("trace_id"));
           PERFETTO_DCHECK(track_args->isMember("trace_id_is_process_scoped"));
           PERFETTO_DCHECK(track_args->isMember("source_scope"));
-          auto trace_id = static_cast<uint64_t>(*legacy_trace_source_id);
+          auto trace_id =
+              static_cast<uint64_t>((*track_args)["trace_id"].asInt64());
           std::string source_scope = (*track_args)["source_scope"].asString();
           if (!source_scope.empty())
             event["scope"] = source_scope;
@@ -1500,11 +1476,6 @@ class JsonExporter {
       // exhaustive list of cases, even if there's a default case.
       metadata::KeyId key = key_it->second;
       switch (static_cast<size_t>(key)) {
-        case metadata::trace_config_pbtxt:
-          writer_.WriteTraceConfigString(
-              storage_->string_pool().Get(*it.str_value()).c_str());
-          break;
-
         case metadata::benchmark_description:
           writer_.AppendTelemetryMetadataString(
               "benchmarkDescriptions",

@@ -12,19 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {ColumnDef, Sorting} from '../../components/aggregation';
+import {ColumnDef, Sorting} from '../../public/aggregation';
+import {Aggregation, AreaSelection} from '../../public/selection';
+import {Engine} from '../../trace_processor/engine';
+import {CPU_SLICE_TRACK_KIND} from '../../public/track_kinds';
+import {AreaSelectionAggregator} from '../../public/selection';
+import {LONG, NUM} from '../../trace_processor/query_result';
 import {
-  Aggregation,
-  Aggregator,
-  createIITable,
+  ii,
   selectTracksAndGetDataset,
 } from '../../components/aggregation_adapter';
-import {AreaSelection} from '../../public/selection';
-import {CPU_SLICE_TRACK_KIND} from '../../public/track_kinds';
-import {Engine} from '../../trace_processor/engine';
-import {LONG, NUM} from '../../trace_processor/query_result';
 
-export class CpuSliceByProcessSelectionAggregator implements Aggregator {
+export class CpuSliceByProcessSelectionAggregator
+  implements AreaSelectionAggregator
+{
   readonly id = 'cpu_by_process_aggregation';
 
   probe(area: AreaSelection): Aggregation | undefined {
@@ -43,12 +44,7 @@ export class CpuSliceByProcessSelectionAggregator implements Aggregator {
 
     return {
       prepareData: async (engine: Engine) => {
-        await using iiTable = await createIITable(
-          engine,
-          dataset,
-          area.start,
-          area.end,
-        );
+        const iiDataset = await ii(engine, this.id, dataset, area);
         await engine.query(`
           create or replace perfetto table ${this.id} as
           select
@@ -57,7 +53,7 @@ export class CpuSliceByProcessSelectionAggregator implements Aggregator {
             sum(dur) AS total_dur,
             sum(dur) / count() as avg_dur,
             count() as occurrences
-          from (${iiTable.name})
+          from (${iiDataset.query()})
           join thread USING (utid)
           join process USING (upid)
           group by upid
@@ -82,25 +78,33 @@ export class CpuSliceByProcessSelectionAggregator implements Aggregator {
     return [
       {
         title: 'Process',
+        kind: 'STRING',
+        columnConstructor: Uint16Array,
         columnId: 'process_name',
       },
       {
         title: 'PID',
+        kind: 'NUMBER',
+        columnConstructor: Float64Array,
         columnId: 'pid',
       },
       {
-        title: 'Wall duration',
-        formatHint: 'DURATION_NS',
+        title: 'Wall duration (ms)',
+        kind: 'TIMESTAMP_NS',
+        columnConstructor: Float64Array,
         columnId: 'total_dur',
         sum: true,
       },
       {
-        title: 'Avg Wall duration',
-        formatHint: 'DURATION_NS',
+        title: 'Avg Wall duration (ms)',
+        kind: 'TIMESTAMP_NS',
+        columnConstructor: Float64Array,
         columnId: 'avg_dur',
       },
       {
         title: 'Occurrences',
+        kind: 'NUMBER',
+        columnConstructor: Uint16Array,
         columnId: 'occurrences',
         sum: true,
       },

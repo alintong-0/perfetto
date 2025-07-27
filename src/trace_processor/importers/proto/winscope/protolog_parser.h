@@ -23,7 +23,6 @@
 
 #include "protos/perfetto/trace/android/protolog.pbzero.h"
 #include "src/trace_processor/importers/proto/winscope/protolog_message_decoder.h"
-#include "src/trace_processor/importers/proto/winscope/winscope_context.h"
 #include "src/trace_processor/storage/trace_storage.h"
 #include "src/trace_processor/util/descriptors.h"
 #include "src/trace_processor/util/proto_to_args_parser.h"
@@ -34,7 +33,7 @@ class TraceProcessorContext;
 
 class ProtoLogParser {
  public:
-  explicit ProtoLogParser(winscope::WinscopeContext*);
+  explicit ProtoLogParser(TraceProcessorContext*);
   void ParseProtoLogMessage(PacketSequenceStateGeneration* sequence_state,
                             protozero::ConstBytes,
                             int64_t timestamp);
@@ -42,13 +41,13 @@ class ProtoLogParser {
 
  private:
   void PopulateReservedRowWithMessage(tables::ProtoLogTable::Id table_row_id,
-                                      winscope::ProtoLogLevel level,
+                                      ProtoLogLevel level,
                                       std::string& group_tag,
                                       std::string& formatted_message,
                                       std::optional<StringId> stacktrace,
                                       std::optional<std::string>& location);
 
-  winscope::WinscopeContext* context_;
+  TraceProcessorContext* const context_;
   util::ProtoToArgsParser args_parser_;
 
   const StringId log_level_debug_string_id_;

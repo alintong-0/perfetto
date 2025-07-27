@@ -18,41 +18,34 @@ import {oneDark} from '@codemirror/theme-one-dark';
 import {keymap} from '@codemirror/view';
 import {basicSetup, EditorView} from 'codemirror';
 import m from 'mithril';
-import {removeFalsyValues} from '../base/array_utils';
-import {assertUnreachable} from '../base/logging';
+import {assertExists, assertUnreachable} from '../base/logging';
+import {DragGestureHandler} from '../base/drag_gesture_handler';
+import {DisposableStack} from '../base/disposable_stack';
 import {perfettoSql} from '../base/perfetto_sql_lang/language';
-import {HTMLAttrs} from './common';
+import {removeFalsyValues} from '../base/array_utils';
 
-export interface EditorAttrs extends HTMLAttrs {
-  // Content of the editor. If defined, the editor operates in controlled mode,
-  // otherwise it operates in uncontrolled mode.
-  // - In controlled mode, the content of the editor is managed by the caller
-  //   and should be used in conjunction with onUpdate to manage the state of
-  //   the editor.
-  // - In uncontrolled mode, the content of the editor is managed internally by
-  //   the editor itself.
-  readonly text?: string;
+export interface EditorAttrs {
+  // Initial state for the editor.
+  initialText?: string;
+
+  // Changing generation is used to force resetting of the editor state
+  // to the current value of initialText.
+  generation?: number;
 
   // Which language use for syntax highlighting et al. Defaults to none.
   readonly language?: 'perfetto-sql';
 
-  // Whether the editor should be focused on creation.
-  readonly autofocus?: boolean;
-
   // Callback for the Ctrl/Cmd + Enter key binding.
   onExecute?: (text: string) => void;
 
-  // Callback for every change to the editor's content.
+  // Callback for every change to the text.
   onUpdate?: (text: string) => void;
 }
 
 export class Editor implements m.ClassComponent<EditorAttrs> {
   private editorView?: EditorView;
-  private latestText?: string;
-
-  focus() {
-    this.editorView?.focus();
-  }
+  private generation?: number;
+  private trash = new DisposableStack();
 
   oncreate({dom, attrs}: m.CVnodeDOM<EditorAttrs>) {
     const keymaps = [indentWithTab];
@@ -82,20 +75,17 @@ export class Editor implements m.ClassComponent<EditorAttrs> {
       });
     }
 
-    const dispatch = (tr: Transaction, view: EditorView) => {
-      // Maybe don't bother doing this if onUpdate is not defined...?
-      view.update([tr]);
-      const text = view.state.doc.toString();
-      // Cache the latest text so that we don't immediately have to overwrite
-      // this every time we make an edit to the doc if the caller just passes in
-      // the exact same string again on the next redraw.
-      this.latestText = text;
-
-      if (onUpdate) {
+    let dispatch;
+    if (onUpdate) {
+      dispatch = (tr: Transaction, view: EditorView) => {
+        view.update([tr]);
+        const text = view.state.doc.toString();
         onUpdate(text);
         m.redraw();
-      }
-    };
+      };
+    }
+
+    this.generation = attrs.generation;
 
     const lang = (() => {
       switch (attrs.language) {
@@ -109,7 +99,7 @@ export class Editor implements m.ClassComponent<EditorAttrs> {
     })();
 
     this.editorView = new EditorView({
-      doc: attrs.text,
+      doc: attrs.initialText ?? '',
       extensions: removeFalsyValues([
         keymap.of(keymaps),
         oneDark,
@@ -120,26 +110,32 @@ export class Editor implements m.ClassComponent<EditorAttrs> {
       dispatch,
     });
 
-    if (attrs.autofocus) {
-      this.focus();
-    }
+    // Install the drag handler for the resize bar.
+    let initialH = 0;
+    this.trash.use(
+      new DragGestureHandler(
+        assertExists(dom.querySelector('.resize-handler')) as HTMLElement,
+        /* onDrag */
+        (_x, y) => ((dom as HTMLElement).style.height = `${initialH + y}px`),
+        /* onDragStarted */
+        () => (initialH = dom.clientHeight),
+        /* onDragFinished */
+        () => {},
+      ),
+    );
   }
 
   onupdate({attrs}: m.CVnodeDOM<EditorAttrs>): void {
-    // Uncontrolled mode: no need to do anything.
-    if (attrs.text === undefined) {
-      return;
-    }
-
+    const {initialText, generation} = attrs;
     const editorView = this.editorView;
-    if (editorView && attrs.text !== this.latestText) {
+    if (editorView && this.generation !== generation) {
       const state = editorView.state;
       editorView.dispatch(
         state.update({
-          changes: {from: 0, to: state.doc.length, insert: attrs.text},
+          changes: {from: 0, to: state.doc.length, insert: initialText},
         }),
       );
-      this.latestText = attrs.text;
+      this.generation = generation;
     }
   }
 
@@ -148,12 +144,10 @@ export class Editor implements m.ClassComponent<EditorAttrs> {
       this.editorView.destroy();
       this.editorView = undefined;
     }
+    this.trash.dispose();
   }
 
-  view({attrs}: m.Vnode<EditorAttrs, this>): void | m.Children {
-    return m('.pf-editor', {
-      className: attrs.className,
-      ref: attrs.ref,
-    });
+  view({}: m.Vnode<EditorAttrs, this>): void | m.Children {
+    return m('.pf-editor', m('.resize-handler'));
   }
 }

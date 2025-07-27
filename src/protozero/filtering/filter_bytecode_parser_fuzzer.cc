@@ -18,7 +18,8 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "perfetto/ext/base/fnv_hash.h"
+#include "perfetto/ext/base/hash.h"
+
 #include "perfetto/protozero/packed_repeated_fields.h"
 #include "src/protozero/filtering/filter_bytecode_parser.h"
 
@@ -34,7 +35,7 @@ void LoadBytecodeWithChecksum(FilterBytecodeParser* parser,
                               const uint8_t* data,
                               size_t size) {
   protozero::PackedVarInt words;
-  perfetto::base::FnvHasher hasher;
+  perfetto::base::Hasher hasher;
   for (size_t i = 0; i < size; i += sizeof(uint32_t)) {
     uint32_t word = 0;
     memcpy(&word, data, sizeof(uint32_t));

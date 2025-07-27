@@ -14,7 +14,6 @@
 
 import {MetricHandler} from './metricUtils';
 import {pinBlockingCallHandlerInstance} from './pinBlockingCall';
-import {pinNotificationsBlockingCallHandlerInstance} from './pinNotificationsBlockingCall';
 import {pinCujScopedJankInstance} from './pinCujScoped';
 import {pinFullTraceJankInstance} from './fullTraceJankMetricHandler';
 import {pinCujInstance} from './pinCujMetricHandler';
@@ -24,6 +23,5 @@ export const METRIC_HANDLERS: MetricHandler[] = [
   pinCujInstance,
   pinCujScopedJankInstance,
   pinBlockingCallHandlerInstance,
-  pinNotificationsBlockingCallHandlerInstance,
   pinFullTraceJankInstance,
 ];

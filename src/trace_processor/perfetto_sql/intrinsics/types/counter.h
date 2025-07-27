@@ -18,10 +18,11 @@
 #define SRC_TRACE_PROCESSOR_PERFETTO_SQL_INTRINSICS_TYPES_COUNTER_H_
 
 #include <cstdint>
+#include <limits>
+#include <string>
 #include <vector>
-
 #include "perfetto/ext/base/flat_hash_map.h"
-#include "perfetto/ext/base/hash.h"
+#include "perfetto/trace_processor/basic_types.h"
 
 namespace perfetto::trace_processor::perfetto_sql {
 

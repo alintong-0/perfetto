@@ -24,6 +24,7 @@
 #include <queue>
 
 #include "perfetto/base/logging.h"
+#include "perfetto/ext/base/hash.h"
 #include "src/trace_processor/storage/trace_storage.h"
 #include "src/trace_processor/types/trace_processor_context.h"
 

@@ -53,18 +53,16 @@ namespace perfetto::trace_processor {
 struct SliceMipmapOperator : sqlite::Module<SliceMipmapOperator> {
   struct Slice {
     int64_t dur;
-    uint32_t count;
+    uint32_t id;
     uint32_t idx;
   };
   struct Agg {
     Slice operator()(const Slice& a, const Slice& b) {
-      return a.dur < b.dur ? Slice{b.dur, a.count + b.count, b.idx}
-                           : Slice{a.dur, a.count + b.count, a.idx};
+      return a.dur < b.dur ? b : a;
     }
   };
   struct PerDepth {
     ImplicitSegmentForest<Slice, Agg> forest;
-    std::vector<uint32_t> ids;
     std::vector<int64_t> timestamps;
   };
   struct State {
@@ -81,7 +79,6 @@ struct SliceMipmapOperator : sqlite::Module<SliceMipmapOperator> {
     struct Result {
       int64_t timestamp;
       int64_t dur;
-      uint32_t count;
       uint32_t id;
       uint32_t depth;
     };

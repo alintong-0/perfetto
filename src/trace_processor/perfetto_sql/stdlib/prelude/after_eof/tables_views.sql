@@ -13,8 +13,6 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-INCLUDE PERFETTO MODULE prelude.after_eof.indexes;
-
 INCLUDE PERFETTO MODULE prelude.after_eof.views;
 
 -- Lists all metrics built-into trace processor.
@@ -74,16 +72,7 @@ CREATE PERFETTO VIEW track (
   -- expand the args.
   source_arg_set_id ARGSETID,
   -- Machine identifier, non-null for tracks on a remote machine.
-  machine_id LONG,
-  -- An opaque key indicating that this track belongs to a group of tracks which
-  -- are "conceptually" the same track.
-  --
-  -- Tracks in trace processor don't allow overlapping events to allow for easy
-  -- analysis (i.e. SQL window functions, SPAN JOIN and other similar
-  -- operators). However, in visualization settings (e.g. the UI), the
-  -- distinction doesn't matter and all tracks with the same `track_group_id`
-  -- should be merged together into a single logical "UI track".
-  track_group_id LONG
+  machine_id LONG
 ) AS
 SELECT
   id,
@@ -92,8 +81,7 @@ SELECT
   dimension_arg_set_id,
   parent_id,
   source_arg_set_id,
-  machine_id,
-  track_group_id
+  machine_id
 FROM __intrinsic_track;
 
 -- Contains information about the CPUs on the device this trace was taken on.
@@ -981,9 +969,7 @@ FROM slice AS s
 JOIN process_track AS t
   ON s.track_id = t.id
 WHERE
-  t.type = 'android_expected_frame_timeline'
-ORDER BY
-  s.id;
+  t.type = 'android_expected_frame_timeline';
 
 -- This table contains information on the actual timeline and additional
 -- analysis related to the performance of either a display frame or a surface
@@ -1056,9 +1042,7 @@ FROM slice AS s
 JOIN process_track AS t
   ON s.track_id = t.id
 WHERE
-  t.type = 'android_actual_frame_timeline'
-ORDER BY
-  s.id;
+  t.type = 'android_actual_frame_timeline';
 
 -- Stores class information within ART heap graphs. It represents Java/Kotlin
 -- classes that exist in the heap, including their names, inheritance
@@ -1107,7 +1091,7 @@ CREATE PERFETTO VIEW heap_graph_object (
   native_size LONG,
   -- Join key with heap_graph_reference containing all objects referred in this
   -- object's fields.
-  reference_set_id JOINID(heap_graph_reference.reference_set_id),
+  reference_set_id JOINID(heap_graph_reference.id),
   -- Bool whether this object is reachable from a GC root. If false, this object
   -- is uncollected garbage.
   reachable BOOL,
@@ -1141,8 +1125,8 @@ FROM __intrinsic_heap_graph_object;
 CREATE PERFETTO VIEW heap_graph_reference (
   -- Unique identifier for this heap graph reference.
   id ID,
-  -- Join key to heap_graph_object reference_set_id.
-  reference_set_id JOINID(heap_graph_object.reference_set_id),
+  -- Join key to heap_graph_object.
+  reference_set_id JOINID(heap_graph_object.id),
   -- Id of object that has this reference_set_id.
   owner_id JOINID(heap_graph_object.id),
   -- Id of object that is referred to.

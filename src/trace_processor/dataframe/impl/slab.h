@@ -17,6 +17,7 @@
 #ifndef SRC_TRACE_PROCESSOR_DATAFRAME_IMPL_SLAB_H_
 #define SRC_TRACE_PROCESSOR_DATAFRAME_IMPL_SLAB_H_
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
@@ -37,19 +38,25 @@ static constexpr bool IsPowerOfTwo(size_t n) {
 //
 // This class enforces several important constraints:
 // - Elements must be trivially constructible and destructible
+// - The alignment must be at least as strict as the element's alignment
+// - The alignment must be a power of two
 //
 // Usage example:
 //   auto slab = Slab<float>::Alloc(1024);  // Allocates space for 1024 floats
 //   for (size_t i = 0; i < slab.size(); ++i) {
 //     slab[i] = static_cast<float>(i);
 //   }
-template <typename T>
+template <typename T, size_t kAlignment = std::max<size_t>(alignof(T), 64)>
 class Slab {
  public:
   static_assert(std::is_trivially_constructible_v<T>,
                 "Slab elements must be trivially constructible");
   static_assert(std::is_trivially_destructible_v<T>,
                 "Slab elements must be trivially destructible");
+  static_assert(alignof(T) <= kAlignment,
+                "Alignment must be at least as strict as element alignment");
+  static_assert(internal::IsPowerOfTwo(kAlignment),
+                "Alignment must be a power of two");
 
   using value_type = T;
   using const_iterator = const T*;
@@ -69,9 +76,9 @@ class Slab {
   //
   // size: Number of elements to allocate space for.
   // Returns a new Slab object with the requested capacity.
-  static Slab<T> Alloc(uint64_t size) {
+  static Slab<T, kAlignment> Alloc(uint64_t size) {
     return Slab(
-        static_cast<T*>(base::AlignedAlloc(alignof(T), size * sizeof(T))),
+        static_cast<T*>(base::AlignedAlloc(kAlignment, size * sizeof(T))),
         size);
   }
 

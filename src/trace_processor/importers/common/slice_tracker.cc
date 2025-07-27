@@ -22,6 +22,7 @@
 #include <utility>
 
 #include "perfetto/base/logging.h"
+#include "perfetto/ext/base/hash.h"
 #include "src/trace_processor/importers/common/args_translation_table.h"
 #include "src/trace_processor/importers/common/slice_tracker.h"
 #include "src/trace_processor/importers/common/slice_translation_table.h"
@@ -416,27 +417,15 @@ bool SliceTracker::MaybeCloseStack(int64_t new_ts,
 
     // Slices that have ended before the new slice begins can be popped from the
     // stack.
-    bool ends_before = end_ts < new_ts;
-
-    // If a slice ends at exactly the same timestamp as another slice, there are
-    // multiple cases to consider:
-    // 1) previous is a slice, current is a instant.
-    // 2) previous is a slice, current is a slice
-    // 3) previous is a instant, current is a slice
-    // 4) previous is a instant, current is a instant.
-    //
-    // In general, we follow the principle of: intervals are closed on left and
-    // open on right. For instants, this really means they only "interfere"
-    // with other instants.
-    //
-    // Case 1) we want to pop.
-    // Case 2) we want to pop.
-    // Case 3) we want to pop.
-    // Case 4) we want to keep (instants "stack" on top of each other).
-    bool ends_same_and_should_drop =
-        end_ts == new_ts && !(dur == 0 && new_dur == 0);
-
-    if (ends_before || ends_same_and_should_drop) {
+    // This is nuanced because of two cases:
+    // 1. A non-zero duration slice ends exactly when the new slice begins.
+    //    This should be considered as two separate slices and the old slice
+    //    should be popped.
+    // 2. A zero-duration slice starts exactly when the new slice begins. This
+    //    should be considered as a nested slice and the old slice should *not*
+    //    be popped.
+    // The condition below implements this logic.
+    if (end_ts < new_ts || (end_ts == new_ts && dur > 0)) {
       StackPop(track_id);
       continue;
     }
@@ -466,7 +455,7 @@ int64_t SliceTracker::GetStackHash(const SlicesStack& stack) {
 
   const auto& slices = context_->storage->slice_table();
 
-  base::FnvHasher hash;
+  base::Hasher hash;
   for (const auto& i : stack) {
     auto ref = i.row.ToRowReference(slices);
     hash.Update(ref.category().value_or(kNullStringId).raw_id());

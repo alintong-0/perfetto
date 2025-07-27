@@ -17,6 +17,7 @@
 #ifndef SRC_TRACE_PROCESSOR_TRACE_PROCESSOR_STORAGE_IMPL_H_
 #define SRC_TRACE_PROCESSOR_TRACE_PROCESSOR_STORAGE_IMPL_H_
 
+#include "perfetto/ext/base/hash.h"
 #include "perfetto/trace_processor/basic_types.h"
 #include "perfetto/trace_processor/trace_processor_storage.h"
 #include "src/trace_processor/importers/common/trace_file_tracker.h"
@@ -41,7 +42,7 @@ class TraceProcessorStorageImpl : public TraceProcessorStorage {
   TraceProcessorContext* context() { return &context_; }
 
  protected:
-  base::FnvHasher trace_hash_;
+  base::Hasher trace_hash_;
   TraceProcessorContext context_;
   bool unrecoverable_parse_error_ = false;
   bool eof_ = false;

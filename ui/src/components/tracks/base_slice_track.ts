@@ -137,7 +137,6 @@ export const BASE_ROW = {
   dur: LONG, // True duration in nanoseconds. -1 = incomplete, 0 = instant.
   tsQ: LONG, // Quantized start time in nanoseconds.
   durQ: LONG, // Quantized duration in nanoseconds.
-  count: NUM, // Number of slices that were merged to create this slice.
   depth: NUM, // Vertical depth.
 };
 
@@ -344,7 +343,6 @@ export abstract class BaseSliceTrack<
             depth,
             ts as tsQ,
             ts,
-            1 as count,
             -1 as durQ,
             -1 as dur,
             id
@@ -358,7 +356,6 @@ export abstract class BaseSliceTrack<
           depth,
           max(ts) as tsQ,
           ts,
-          1 as count,
           -1 as durQ,
           -1 as dur,
           id
@@ -721,7 +718,6 @@ export abstract class BaseSliceTrack<
       SELECT
         (z.ts / ${resolution}) * ${resolution} as tsQ,
         ((z.dur + ${resolution - 1n}) / ${resolution}) * ${resolution} as durQ,
-        z.count as count,
         s.ts as ts,
         s.dur as dur,
         s.id,
@@ -793,7 +789,6 @@ export abstract class BaseSliceTrack<
       endNs: Time.fromRaw(row.tsQ + row.durQ),
       durNs: row.durQ,
       ts: Time.fromRaw(row.ts),
-      count: row.count,
       dur: row.dur,
       flags,
       depth: row.depth,

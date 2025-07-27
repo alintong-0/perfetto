@@ -25,7 +25,6 @@
 #include <signal.h>
 #include <time.h>
 
-#include <atomic>
 #include <condition_variable>
 #include <map>
 #include <memory>
@@ -106,7 +105,7 @@ TEST(WatchdogTest, CrashCpu) {
         TestWatchdog watchdog(1);
         watchdog.SetCpuLimit(10, 25);
         watchdog.Start();
-        std::atomic<int> x = 0;
+        volatile int x = 0;
         for (;;) {
           x++;
         }

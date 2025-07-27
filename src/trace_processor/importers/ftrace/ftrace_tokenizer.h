@@ -22,7 +22,6 @@
 
 #include "perfetto/trace_processor/trace_blob_view.h"
 #include "src/trace_processor/importers/common/clock_tracker.h"
-#include "src/trace_processor/importers/ftrace/generic_ftrace_tracker.h"
 #include "src/trace_processor/importers/proto/packet_sequence_state_generation.h"
 #include "src/trace_processor/storage/trace_storage.h"
 #include "src/trace_processor/types/trace_processor_context.h"
@@ -34,9 +33,8 @@ namespace trace_processor {
 
 class FtraceTokenizer {
  public:
-  explicit FtraceTokenizer(TraceProcessorContext* context,
-                           GenericFtraceTracker* generic_tracker)
-      : context_(context), generic_tracker_(generic_tracker) {}
+  explicit FtraceTokenizer(TraceProcessorContext* context)
+      : context_(context) {}
 
   base::Status TokenizeFtraceBundle(TraceBlobView bundle,
                                     RefPtr<PacketSequenceStateGeneration>,
@@ -84,11 +82,9 @@ class FtraceTokenizer {
       PERFETTO_DLOG("%s", status.c_message());
   }
 
-  TraceProcessorContext* context_;
-  GenericFtraceTracker* generic_tracker_;
-
   int64_t latest_ftrace_clock_snapshot_ts_ = 0;
   std::vector<bool> per_cpu_seen_first_bundle_;
+  TraceProcessorContext* context_;
 };
 
 }  // namespace trace_processor

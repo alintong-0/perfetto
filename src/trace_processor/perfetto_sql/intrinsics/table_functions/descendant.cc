@@ -160,6 +160,9 @@ std::string Descendant::TableName() {
 uint32_t Descendant::GetArgumentCount() const {
   return 1;
 }
+uint32_t Descendant::EstimateRowCount() {
+  return 1;
+}
 
 tables::SliceTable::ConstCursor Descendant::MakeCursor(
     const tables::SliceTable& slices) {

@@ -28,7 +28,6 @@
 #include "perfetto/protozero/scattered_heap_buffer.h"
 #include "perfetto/trace_processor/trace_blob.h"
 #include "perfetto/trace_processor/trace_blob_view.h"
-#include "src/trace_redaction/add_synth_threads_to_process_trees.h"
 #include "src/trace_redaction/broadphase_packet_filter.h"
 #include "src/trace_redaction/collect_frame_cookies.h"
 #include "src/trace_redaction/collect_system_info.h"
@@ -40,7 +39,7 @@
 #include "src/trace_redaction/prune_package_list.h"
 #include "src/trace_redaction/redact_ftrace_events.h"
 #include "src/trace_redaction/redact_process_events.h"
-#include "src/trace_redaction/reduce_threads_in_process_trees.h"
+#include "src/trace_redaction/redact_process_trees.h"
 #include "src/trace_redaction/scrub_process_stats.h"
 #include "src/trace_redaction/trace_redaction_framework.h"
 #include "src/trace_redaction/verify_integrity.h"
@@ -261,16 +260,13 @@ std::unique_ptr<TraceRedactor> TraceRedactor::CreateInstance(
     primitive->emplace_ftrace_filter<AllowAll>();
   }
 
-  // Add transforms that will change process trees. The order here matters:
-  //
-  //  1. Primitives removing processes/threads
-  //  2. Primitives adding processes/threads
-  //
-  // If primitives are not in this order, newly added processes/threads may
-  // get removed.
+  // Configure the primitive to remove processes and threads that don't belong
+  // to the target package and adds a process and threads for the synth thread
+  // group and threads.
   {
-    redactor->emplace_transform<ReduceThreadsInProcessTrees>();
-    redactor->emplace_transform<AddSythThreadsToProcessTrees>();
+    auto* primitive = redactor->emplace_transform<RedactProcessTrees>();
+    primitive->emplace_modifier<ProcessTreeCreateSynthThreads>();
+    primitive->emplace_filter<ConnectedToPackage>();
   }
 
   // Optimizations:

@@ -45,7 +45,7 @@ struct Row {
   uint32_t group;
 };
 
-struct AggCtx : sqlite::AggregateContext<AggCtx> {
+struct AggCtx : SqliteAggregateContext<AggCtx> {
   std::vector<Row> input;
   std::vector<uint32_t> child_count_by_id;
   std::optional<Row> root;

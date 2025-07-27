@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "perfetto/ext/base/flat_hash_map.h"
+#include "perfetto/ext/base/hash.h"
 #include "perfetto/ext/base/string_view.h"
 #include "src/trace_processor/storage/trace_storage.h"
 
@@ -72,7 +73,7 @@ class DeobfuscationMappingTable {
   struct PackageIdHash {
     std::size_t operator()(PackageId const& p) const noexcept {
       return static_cast<std::size_t>(
-          base::FnvHasher::Combine(p.package_name, p.version_code));
+          base::Hasher::Combine(p.package_name, p.version_code));
     }
   };
 

@@ -35,7 +35,6 @@ export function formatDuration(trace: Trace, dur: duration): string {
     case TimestampFormat.UTC:
     case TimestampFormat.TraceTz:
     case TimestampFormat.Timecode:
-    case TimestampFormat.CustomTimezone:
       return renderFormattedDuration(trace, dur);
     case TimestampFormat.TraceNs:
       return dur.toString();

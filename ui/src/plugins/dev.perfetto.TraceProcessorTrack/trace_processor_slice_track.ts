@@ -30,7 +30,6 @@ import {
   LONG,
   LONG_NULL,
   NUM,
-  NUM_NULL,
   STR_NULL,
 } from '../../trace_processor/query_result';
 import m from 'mithril';
@@ -52,7 +51,6 @@ const schema = {
   thread_dur: LONG_NULL,
   category: STR_NULL,
   correlation_id: STR_NULL,
-  arg_set_id: NUM_NULL,
 };
 
 export async function createTraceProcessorSliceTrack({
@@ -114,8 +112,7 @@ async function getDataset(engine: Engine, trackIds: ReadonlyArray<number>) {
           thread_dur,
           track_id,
           category,
-          extract_arg(arg_set_id, 'correlation_id') as correlation_id,
-          arg_set_id
+          extract_arg(arg_set_id, 'correlation_id') as correlation_id
         from slice
       `,
       filter: {
@@ -151,8 +148,7 @@ async function getDataset(engine: Engine, trackIds: ReadonlyArray<number>) {
           thread_dur,
           track_id,
           category,
-          extract_arg(arg_set_id, 'correlation_id') as correlation_id,
-          arg_set_id
+          extract_arg(arg_set_id, 'correlation_id') as correlation_id
         from slice
         join ${tableName} d using (id)
       `,

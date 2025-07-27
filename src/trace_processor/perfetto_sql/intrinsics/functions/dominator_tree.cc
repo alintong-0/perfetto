@@ -271,7 +271,7 @@ void Graph::ComputeDominators() {
   }
 }
 
-struct AggCtx : sqlite::AggregateContext<AggCtx> {
+struct AggCtx : SqliteAggregateContext<AggCtx> {
   Graph graph;
   std::optional<uint32_t> start_id;
 };

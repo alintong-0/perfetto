@@ -18,7 +18,6 @@
 
 #include <jni.h>
 
-#include "src/android_sdk/jni/macros.h"
 #include "src/android_sdk/nativehelper/JNIHelp.h"
 
 namespace perfetto {
@@ -40,17 +39,21 @@ static const JNINativeMethod gNativeMemoryCleanerMethods[] = {
     {"applyNativeFunction", "(JJ)V",
      (void*)dev_perfetto_sdk_PerfettoTrackEventExtra_applyNativeFunction}};
 
+#define LOG_ALWAYS_FATAL_IF(cond, fmt) \
+  if (cond)                            \
+    __android_log_assert(nullptr, "PerfettoJNI", fmt);
+
 int register_dev_perfetto_sdk_PerfettoNativeMemoryCleaner(JNIEnv* env) {
   int res = jniRegisterNativeMethods(
-      env,
-      TO_MAYBE_JAR_JAR_CLASS_NAME(
-          "dev/perfetto/sdk/PerfettoNativeMemoryCleaner"),
+      env, "dev/perfetto/sdk/PerfettoNativeMemoryCleaner",
       gNativeMemoryCleanerMethods, NELEM(gNativeMemoryCleanerMethods));
   LOG_ALWAYS_FATAL_IF(
       res < 0,
       "Unable to register PerfettoNativeMemoryCleaner native methods.");
   return 0;
 }
+
+#undef LOG_ALWAYS_FATAL_IF
 
 }  // namespace jni
 }  // namespace perfetto

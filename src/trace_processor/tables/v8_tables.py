@@ -20,7 +20,6 @@ for any serious business just yet""
 from python.generators.trace_processor_table.public import Column as C
 from python.generators.trace_processor_table.public import ColumnDoc
 from python.generators.trace_processor_table.public import CppAccess
-from python.generators.trace_processor_table.public import CppAccessDuration
 from python.generators.trace_processor_table.public import CppInt32
 from python.generators.trace_processor_table.public import CppInt64
 from python.generators.trace_processor_table.public import CppOptional
@@ -173,14 +172,8 @@ V8_JS_CODE = Table(
             'v8_js_function_id',
             CppTableId(V8_JS_FUNCTION),
             cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
-        C(
-            'tier',
-            CppString(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('tier', CppString(), cpp_access=CppAccess.READ),
         C('bytecode_base64', CppOptional(CppString())),
     ],
     tabledoc=TableDoc(
@@ -218,12 +211,7 @@ V8_INTERNAL_CODE = Table(
     columns=[
         C('jit_code_id', CppTableId(JIT_CODE_TABLE)),
         C('v8_isolate_id', CppTableId(V8_ISOLATE)),
-        C(
-            'function_name',
-            CppString(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('function_name', CppString(), cpp_access=CppAccess.READ),
         C('code_type', CppString()),
     ],
     tabledoc=TableDoc(
@@ -304,12 +292,7 @@ V8_REGEXP_CODE = Table(
     columns=[
         C('jit_code_id', CppTableId(JIT_CODE_TABLE)),
         C('v8_isolate_id', CppTableId(V8_ISOLATE)),
-        C(
-            'pattern',
-            CppString(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('pattern', CppString(), cpp_access=CppAccess.READ),
     ],
     tabledoc=TableDoc(
         doc="""

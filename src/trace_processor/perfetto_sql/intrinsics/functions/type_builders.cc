@@ -32,6 +32,7 @@
 #include "perfetto/base/logging.h"
 #include "perfetto/base/status.h"
 #include "perfetto/ext/base/flat_hash_map.h"
+#include "perfetto/ext/base/hash.h"
 #include "perfetto/ext/base/small_vector.h"
 #include "perfetto/ext/base/status_macros.h"
 #include "perfetto/public/compiler.h"
@@ -54,7 +55,7 @@
 namespace perfetto::trace_processor {
 namespace {
 
-inline void HashSqlValue(base::FnvHasher& h, const SqlValue& v) {
+inline void HashSqlValue(base::Hasher& h, const SqlValue& v) {
   switch (v.type) {
     case SqlValue::Type::kString:
       h.Update(v.AsString());
@@ -80,10 +81,10 @@ using Array = std::variant<perfetto_sql::IntArray,
                            perfetto_sql::StringArray>;
 
 // An SQL aggregate-function which creates an array.
-struct ArrayAgg : public sqlite::AggregateFunction<ArrayAgg> {
+struct ArrayAgg : public SqliteAggregateFunction<ArrayAgg> {
   static constexpr char kName[] = "__intrinsic_array_agg";
   static constexpr int kArgCount = 1;
-  struct AggCtx : sqlite::AggregateContext<AggCtx> {
+  struct AggCtx : SqliteAggregateContext<AggCtx> {
     template <typename T>
     void Push(sqlite3_context* ctx, T value) {
       if (PERFETTO_UNLIKELY(!array)) {
@@ -149,10 +150,10 @@ struct ArrayAgg : public sqlite::AggregateFunction<ArrayAgg> {
 };
 
 // An SQL aggregate function which creates a graph.
-struct NodeAgg : public sqlite::AggregateFunction<NodeAgg> {
+struct NodeAgg : public SqliteAggregateFunction<NodeAgg> {
   static constexpr char kName[] = "__intrinsic_graph_agg";
   static constexpr int kArgCount = 2;
-  struct AggCtx : sqlite::AggregateContext<AggCtx> {
+  struct AggCtx : SqliteAggregateContext<AggCtx> {
     perfetto_sql::Graph graph;
   };
 
@@ -180,7 +181,7 @@ struct NodeAgg : public sqlite::AggregateFunction<NodeAgg> {
 };
 
 // An SQL scalar function which creates an struct.
-struct Struct : public sqlite::Function<Struct> {
+struct Struct : public SqliteFunction<Struct> {
   static constexpr char kName[] = "__intrinsic_struct";
   static constexpr int kArgCount = -1;
 
@@ -228,10 +229,10 @@ struct Struct : public sqlite::Function<Struct> {
 };
 
 // An SQL aggregate function which creates a RowDataframe.
-struct RowDataframeAgg : public sqlite::AggregateFunction<Struct> {
+struct RowDataframeAgg : public SqliteAggregateFunction<Struct> {
   static constexpr char kName[] = "__intrinsic_row_dataframe_agg";
   static constexpr int kArgCount = -1;
-  struct AggCtx : sqlite::AggregateContext<AggCtx> {
+  struct AggCtx : SqliteAggregateContext<AggCtx> {
     perfetto_sql::RowDataframe dataframe;
     std::optional<uint32_t> argc_index;
   };
@@ -300,11 +301,11 @@ struct RowDataframeAgg : public sqlite::AggregateFunction<Struct> {
 };
 
 struct IntervalTreeIntervalsAgg
-    : public sqlite::AggregateFunction<perfetto_sql::PartitionedTable> {
+    : public SqliteAggregateFunction<perfetto_sql::PartitionedTable> {
   static constexpr char kName[] = "__intrinsic_interval_tree_intervals_agg";
   static constexpr int kArgCount = -1;
   static constexpr int kMinArgCount = 3;
-  struct AggCtx : sqlite::AggregateContext<AggCtx> {
+  struct AggCtx : SqliteAggregateContext<AggCtx> {
     perfetto_sql::PartitionedTable partitions;
     std::vector<SqlValue> tmp_vals;
     uint64_t last_interval_start = 0;
@@ -329,16 +330,13 @@ struct IntervalTreeIntervalsAgg
           ctx, "Interval intersect requires intervals to be sorted by ts.");
       return;
     }
+    agg_ctx.last_interval_start = interval.start;
     int64_t dur = sqlite::value::Int64(argv[2]);
-
-    if (dur < 0) {
-      sqlite::result::Error(ctx,
-                            "Interval intersect only works on intervals with "
-                            "non negative duration.");
+    if (dur < 1) {
+      sqlite::result::Error(
+          ctx, "Interval intersect only works on intervals with dur > 0");
       return;
     }
-
-    agg_ctx.last_interval_start = interval.start;
     interval.end = interval.start + static_cast<uint64_t>(dur);
 
     // Fast path for no partitions.
@@ -367,7 +365,7 @@ struct IntervalTreeIntervalsAgg
     }
 
     // Create a partition key and save SqlValues of the partition.
-    base::FnvHasher h;
+    base::Hasher h;
     uint32_t j = 0;
     for (uint32_t i = kMinArgCount + 1; i < argc; i += 2) {
       SqlValue new_val = sqlite::utils::SqliteValueToSqlValue(argv[i]);
@@ -419,10 +417,10 @@ struct IntervalTreeIntervalsAgg
 };
 
 struct CounterPerTrackAgg
-    : public sqlite::AggregateFunction<perfetto_sql::PartitionedCounter> {
+    : public SqliteAggregateFunction<perfetto_sql::PartitionedCounter> {
   static constexpr char kName[] = "__intrinsic_counter_per_track_agg";
   static constexpr int kArgCount = 4;
-  struct AggCtx : sqlite::AggregateContext<AggCtx> {
+  struct AggCtx : SqliteAggregateContext<AggCtx> {
     perfetto_sql::PartitionedCounter tracks;
   };
 

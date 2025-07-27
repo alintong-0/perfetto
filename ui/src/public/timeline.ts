@@ -14,7 +14,6 @@
 
 import {HighPrecisionTimeSpan} from '../base/high_precision_time_span';
 import {time} from '../base/time';
-import {Setting} from './settings';
 
 export enum TimestampFormat {
   Timecode = 'timecode',
@@ -24,7 +23,6 @@ export enum TimestampFormat {
   Milliseconds = 'milliseconds',
   Microseconds = 'microseconds',
   UTC = 'utc',
-  CustomTimezone = 'customTimezone',
   TraceTz = 'traceTz',
 }
 
@@ -66,6 +64,4 @@ export interface Timeline {
   // These control how timestamps and durations are formatted throughout the UI
   timestampFormat: TimestampFormat;
   durationPrecision: DurationPrecision;
-  customTimezoneOffset: number;
-  timezoneOverride: Setting<string>;
 }

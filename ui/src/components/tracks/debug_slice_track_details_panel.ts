@@ -14,9 +14,9 @@
 
 import m from 'mithril';
 import {duration, Time, time} from '../../base/time';
-import {hasArgs, renderArguments} from '../details/args';
+import {hasArgs} from '../details/args';
 import {getSlice, SliceDetails} from '../sql_utils/slice';
-import {asArgSetId, asSliceSqlId, Utid} from '../sql_utils/core_types';
+import {asSliceSqlId, Utid} from '../sql_utils/core_types';
 import {getThreadState, ThreadState} from '../sql_utils/thread_state';
 import {DurationWidget} from '../widgets/duration';
 import {Timestamp} from '../widgets/timestamp';
@@ -26,7 +26,6 @@ import {
   LONG,
   STR,
   timeFromSql,
-  NUM_NULL,
 } from '../../trace_processor/query_result';
 import {sqlValueToReadableString} from '../../trace_processor/sql_utils';
 import {DetailsShell} from '../../widgets/details_shell';
@@ -41,9 +40,8 @@ import {TrackEventDetailsPanel} from '../../public/details_panel';
 import {Trace} from '../../public/trace';
 import {SqlRef} from '../../widgets/sql_ref';
 import {renderSliceArguments} from '../details/slice_args';
-import {Arg, getArgs} from '../sql_utils/args';
 
-export const RAW_PREFIX = 'raw_';
+export const ARG_PREFIX = 'arg_';
 
 function sqlValueToNumber(value?: SqlValue): number | undefined {
   if (typeof value === 'bigint') return Number(value);
@@ -76,13 +74,8 @@ export class DebugSliceTrackDetailsPanel implements TrackEventDetailsPanel {
     name: string;
     ts: time;
     dur: duration;
-    rawCols: {[key: string]: SqlValue};
+    args: {[key: string]: SqlValue};
   };
-
-  // These are the actual loaded args from the args table assuming an arg_set_id
-  // is supplied.
-  private args?: Arg[];
-
   // We will try to interpret the arguments as references into well-known
   // tables. These values will be set if the relevant columns exist and
   // are consistent (e.g. 'ts' and 'dur' for this slice correspond to values
@@ -94,14 +87,8 @@ export class DebugSliceTrackDetailsPanel implements TrackEventDetailsPanel {
     private readonly trace: Trace,
     private readonly tableName: string,
     private readonly eventId: number,
-    private readonly argSetIdCol?: string,
   ) {}
 
-  // If we suspect the slice might be a projection of a row from the
-  // thread_state table, we should show some information about the thread and
-  // make it clickable in order to go back to the canonical slice.
-  // We detect whether it's the case if any of the following are true:
-  // - There is a column
   private async maybeLoadThreadState(
     id: number | undefined,
     ts: time,
@@ -164,7 +151,7 @@ export class DebugSliceTrackDetailsPanel implements TrackEventDetailsPanel {
     }
   }
 
-  private renderSliceInfo() {
+  private renderSliceInfo(): m.Child {
     if (this.slice === undefined) return null;
     return m(
       TreeNode,
@@ -196,53 +183,44 @@ export class DebugSliceTrackDetailsPanel implements TrackEventDetailsPanel {
   }
 
   async load() {
-    const queryResult = await this.trace.engine.query(`
-      SELECT *
-      FROM ${this.tableName}
-      WHERE id = ${this.eventId}
-    `);
-
+    const queryResult = await this.trace.engine.query(
+      `select * from ${this.tableName} where id = ${this.eventId}`,
+    );
     const row = queryResult.firstRow({
       ts: LONG,
       dur: LONG,
       name: STR,
-      ...(this.argSetIdCol && {arg_set_id: NUM_NULL}),
     });
-
     this.data = {
       name: row.name,
       ts: Time.fromRaw(row.ts),
       dur: row.dur,
-      rawCols: {},
+      args: {},
     };
 
-    if (row.arg_set_id != null) {
-      this.args = await getArgs(this.trace.engine, asArgSetId(row.arg_set_id));
-    }
-
     for (const key of Object.keys(row)) {
-      if (key.startsWith(RAW_PREFIX)) {
-        this.data.rawCols[key.substr(RAW_PREFIX.length)] = (
+      if (key.startsWith(ARG_PREFIX)) {
+        this.data.args[key.substr(ARG_PREFIX.length)] = (
           row as {[key: string]: SqlValue}
         )[key];
       }
     }
 
     this.threadState = await this.maybeLoadThreadState(
-      sqlValueToNumber(this.data.rawCols['id']),
+      sqlValueToNumber(this.data.args['id']),
       this.data.ts,
       this.data.dur,
-      sqlValueToReadableString(this.data.rawCols['table_name']),
-      sqlValueToUtid(this.data.rawCols['utid']),
+      sqlValueToReadableString(this.data.args['table_name']),
+      sqlValueToUtid(this.data.args['utid']),
     );
 
     this.slice = await this.maybeLoadSlice(
-      sqlValueToNumber(this.data.rawCols['id']) ??
-        sqlValueToNumber(this.data.rawCols['slice_id']),
+      sqlValueToNumber(this.data.args['id']) ??
+        sqlValueToNumber(this.data.args['slice_id']),
       this.data.ts,
       this.data.dur,
-      sqlValueToReadableString(this.data.rawCols['table_name']),
-      sqlValueToNumber(this.data.rawCols['track_id']),
+      sqlValueToReadableString(this.data.args['table_name']),
+      sqlValueToNumber(this.data.args['track_id']),
     );
   }
 
@@ -259,13 +237,10 @@ export class DebugSliceTrackDetailsPanel implements TrackEventDetailsPanel {
     details.push(this.renderThreadStateInfo());
     details.push(this.renderSliceInfo());
 
-    const rawCols: {[key: string]: m.Child} = {};
-    for (const key of Object.keys(this.data.rawCols)) {
-      rawCols[key] = sqlValueToReadableString(this.data.rawCols[key]);
+    const args: {[key: string]: m.Child} = {};
+    for (const key of Object.keys(this.data.args)) {
+      args[key] = sqlValueToReadableString(this.data.args[key]);
     }
-
-    // Print the raw columns from the source query (previously called 'args')
-    details.push(m(TreeNode, {left: 'Raw columns'}, dictToTree(rawCols)));
 
     return m(
       DetailsShell,
@@ -275,12 +250,7 @@ export class DebugSliceTrackDetailsPanel implements TrackEventDetailsPanel {
       m(
         GridLayout,
         m(Section, {title: 'Details'}, m(Tree, details)),
-        this.args &&
-          m(
-            Section,
-            {title: 'Arguments'},
-            m(Tree, renderArguments(this.trace, this.args)),
-          ),
+        m(Section, {title: 'Arguments'}, dictToTree(args)),
       ),
     );
   }

@@ -17,10 +17,9 @@
 #ifndef INCLUDE_PERFETTO_EXT_BASE_FLAT_HASH_MAP_H_
 #define INCLUDE_PERFETTO_EXT_BASE_FLAT_HASH_MAP_H_
 
+#include "perfetto/base/compiler.h"
 #include "perfetto/base/logging.h"
-#include "perfetto/ext/base/flags.h"
-#include "perfetto/ext/base/fnv_hash.h"
-#include "perfetto/ext/base/murmur_hash.h"
+#include "perfetto/ext/base/hash.h"
 #include "perfetto/ext/base/utils.h"
 
 #include <algorithm>
@@ -46,6 +45,11 @@ namespace base {
 // absl::flat_hash_map:       998,013,459 ns    227.379M insertions/s
 // FollyF14FastMap:         1,181,480,602 ns    192.074M insertions/s
 //
+// TODO(primiano): the table regresses for heavy insert+erase workloads since we
+// don't clean up tombstones outside of resizes. In the limit, the entire
+// table's capacity is made up of values/tombstones, so each search has to
+// exhaustively scan the full capacity.
+
 // The structs below define the probing algorithm used to probe slots upon a
 // collision. They are guaranteed to visit all slots as our table size is always
 // a power of two (see https://en.wikipedia.org/wiki/Quadratic_probing).
@@ -82,10 +86,7 @@ struct QuadraticHalfProbe {
 
 template <typename Key,
           typename Value,
-          typename Hasher =
-              std::conditional_t<base::flags::use_murmur_hash_for_flat_hash_map,
-                                 base::MurmurHash<Key>,
-                                 base::FnvHash<Key>>,
+          typename Hasher = base::Hash<Key>,
           typename Probe = QuadraticProbe,
           bool AppendOnly = false>
 class FlatHashMap {
@@ -133,7 +134,7 @@ class FlatHashMap {
                        int load_limit_pct = kDefaultLoadLimitPct)
       : load_limit_percent_(load_limit_pct) {
     if (initial_capacity > 0)
-      Reset(initial_capacity, true);
+      Reset(initial_capacity);
   }
 
   // We are calling Clear() so that the destructors for the inserted entries are
@@ -146,7 +147,6 @@ class FlatHashMap {
     values_ = std::move(other.values_);
     capacity_ = other.capacity_;
     size_ = other.size_;
-    tombstones_ = other.tombstones_;
     max_probe_length_ = other.max_probe_length_;
     load_limit_ = other.load_limit_;
     load_limit_percent_ = other.load_limit_percent_;
@@ -224,16 +224,6 @@ class FlatHashMap {
         MaybeGrowAndRehash(/*grow=*/true);
         continue;
       }
-      // If there are too many tombstones, it's worth doing a rehash to
-      // clean them up. This is to avoid the case where we have a table full
-      // of tombstones which would cause lookups to be very slow.
-      bool is_many_tombstones = tombstones_ > size_ && size_ > 128;
-      bool is_tombstones_plus_size_too_high = tombstones_ + size_ > load_limit_;
-      if (PERFETTO_UNLIKELY(is_many_tombstones ||
-                            is_tombstones_plus_size_too_high)) {
-        MaybeGrowAndRehash(/*grow=*/false);
-        continue;
-      }
       PERFETTO_DCHECK(insertion_slot != kSlotNotFound);
       break;
     }  // for (attempt)
@@ -241,10 +231,6 @@ class FlatHashMap {
     PERFETTO_CHECK(insertion_slot < capacity_);
 
     // We found a free slot (or a tombstone). Proceed with the insertion.
-    if (tags_[insertion_slot] == kTombstone) {
-      PERFETTO_DCHECK(tombstones_ > 0);
-      tombstones_--;
-    }
     Value* value_idx = &values_[insertion_slot];
     new (&keys_[insertion_slot]) Key(std::move(key));
     new (value_idx) Value(std::move(value));
@@ -280,12 +266,11 @@ class FlatHashMap {
 
     for (size_t i = 0; i < capacity_; ++i) {
       const uint8_t tag = tags_[i];
-      if (tag != kFreeSlot && (AppendOnly || tag != kTombstone)) {
-        keys_[i].~Key();
-        values_[i].~Value();
-      }
+      if (tag != kFreeSlot && tag != kTombstone)
+        EraseInternal(i);
     }
-    Reset(capacity_, false);
+    // Clear all tombstones. We really need to do this for AppendOnly.
+    MaybeGrowAndRehash(/*grow=*/false);
   }
 
   Value& operator[](Key key) {
@@ -333,8 +318,6 @@ class FlatHashMap {
     keys_[idx].~Key();
     values_[idx].~Value();
     size_--;
-    tombstones_++;
-    PERFETTO_DCHECK(size_ + tombstones_ <= capacity_);
   }
 
   PERFETTO_NO_INLINE void MaybeGrowAndRehash(bool grow) {
@@ -356,7 +339,7 @@ class FlatHashMap {
     // This must be a CHECK (i.e. not just a DCHECK) to prevent UAF attacks on
     // 32-bit archs that try to double the size of the table until wrapping.
     PERFETTO_CHECK(new_capacity >= old_capacity);
-    Reset(new_capacity, true);
+    Reset(new_capacity);
 
     size_t new_size = 0;  // Recompute the size.
     for (size_t i = 0; i < old_capacity; ++i) {
@@ -369,32 +352,23 @@ class FlatHashMap {
       }
     }
     PERFETTO_DCHECK(new_size == old_size);
-    PERFETTO_DCHECK(tombstones_ == 0);
     size_ = new_size;
   }
 
   // Doesn't call destructors. Use Clear() for that.
-  PERFETTO_NO_INLINE void Reset(size_t n, bool reallocate) {
+  PERFETTO_NO_INLINE void Reset(size_t n) {
     PERFETTO_DCHECK((n & (n - 1)) == 0);  // Must be a pow2.
 
     capacity_ = n;
     max_probe_length_ = 0;
     size_ = 0;
-    tombstones_ = 0;
     load_limit_ = n * static_cast<size_t>(load_limit_percent_) / 100;
     load_limit_ = std::min(load_limit_, n);
 
-    if (reallocate) {
-      tags_.reset(new uint8_t[n]);
-      keys_ = AlignedAllocTyped<Key[]>(n);  // Deliberately not 0-initialized.
-      values_ =
-          AlignedAllocTyped<Value[]>(n);  // Deliberately not 0-initialized.
-    }
-
-    // Only clear the tags if not nullptr.
-    if (tags_) {
-      memset(&tags_[0], 0, n);  // Clear all tags.
-    }
+    tags_.reset(new uint8_t[n]);
+    memset(&tags_[0], 0, n);                  // Clear all tags.
+    keys_ = AlignedAllocTyped<Key[]>(n);      // Deliberately not 0-initialized.
+    values_ = AlignedAllocTyped<Value[]>(n);  // Deliberately not 0-initialized.
   }
 
   static inline uint8_t HashToTag(size_t full_hash) {
@@ -407,7 +381,6 @@ class FlatHashMap {
 
   size_t capacity_ = 0;
   size_t size_ = 0;
-  size_t tombstones_ = 0;
   size_t max_probe_length_ = 0;
   size_t load_limit_ = 0;  // Updated every time |capacity_| changes.
   int load_limit_percent_ =

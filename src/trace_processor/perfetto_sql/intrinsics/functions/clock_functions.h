@@ -28,7 +28,7 @@
 namespace perfetto {
 namespace trace_processor {
 
-struct AbsTimeStr : public LegacySqlFunction {
+struct AbsTimeStr : public SqlFunction {
   using Context = ClockConverter;
   static base::Status Run(ClockConverter* tracker,
                           size_t argc,
@@ -71,7 +71,7 @@ base::Status AbsTimeStr::Run(ClockConverter* tracker,
   return base::OkStatus();
 }
 
-struct ToMonotonic : public LegacySqlFunction {
+struct ToMonotonic : public SqlFunction {
   using Context = ClockConverter;
   static base::Status Run(ClockConverter* tracker,
                           size_t argc,
@@ -110,7 +110,7 @@ base::Status ToMonotonic::Run(ClockConverter* converter,
   return base::OkStatus();
 }
 
-struct ToRealtime : public LegacySqlFunction {
+struct ToRealtime : public SqlFunction {
   using Context = ClockConverter;
   static base::Status Run(ClockConverter* tracker,
                           size_t argc,
@@ -149,7 +149,7 @@ base::Status ToRealtime::Run(ClockConverter* converter,
   return base::OkStatus();
 }
 
-struct ToTimecode : public LegacySqlFunction {
+struct ToTimecode : public SqlFunction {
   static base::Status Run(void*,
                           size_t argc,
                           sqlite3_value** argv,

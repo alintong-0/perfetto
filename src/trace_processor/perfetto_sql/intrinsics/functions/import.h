@@ -30,7 +30,7 @@
 namespace perfetto {
 namespace trace_processor {
 
-struct Import : public LegacySqlFunction {
+struct Import : public SqlFunction {
   struct Context {
     PerfettoSqlEngine* engine;
   };

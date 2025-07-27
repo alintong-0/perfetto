@@ -26,6 +26,7 @@
 #include "perfetto/base/logging.h"
 #include "perfetto/ext/base/status_macros.h"
 #include "perfetto/ext/base/status_or.h"
+#include "perfetto/ext/base/variant.h"
 #include "src/trace_processor/containers/string_pool.h"
 #include "src/trace_processor/dataframe/cursor_impl.h"  // IWYU pragma: keep
 #include "src/trace_processor/dataframe/impl/query_plan.h"
@@ -122,7 +123,7 @@ void Dataframe::Clear() {
     }
   }
   row_count_ = 0;
-  ++non_column_mutations_;
+  ++mutations_;
 }
 
 base::StatusOr<Index> Dataframe::BuildIndex(const uint32_t* columns_start,
@@ -152,13 +153,13 @@ base::StatusOr<Index> Dataframe::BuildIndex(const uint32_t* columns_start,
 void Dataframe::AddIndex(Index index) {
   PERFETTO_CHECK(finalized_);
   indexes_.emplace_back(std::move(index));
-  ++non_column_mutations_;
+  ++mutations_;
 }
 
 void Dataframe::RemoveIndexAt(uint32_t index) {
   PERFETTO_CHECK(finalized_);
   indexes_.erase(indexes_.begin() + static_cast<std::ptrdiff_t>(index));
-  ++non_column_mutations_;
+  ++mutations_;
 }
 
 void Dataframe::Finalize() {

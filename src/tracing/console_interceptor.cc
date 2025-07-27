@@ -24,6 +24,7 @@
 #include <tuple>
 
 #include "perfetto/ext/base/file_utils.h"
+#include "perfetto/ext/base/hash.h"
 #include "perfetto/ext/base/scoped_file.h"
 #include "perfetto/ext/base/string_utils.h"
 #include "perfetto/ext/base/utils.h"

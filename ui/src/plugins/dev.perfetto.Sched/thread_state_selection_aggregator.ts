@@ -12,21 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {Duration} from '../../base/time';
-import {BarChartData, ColumnDef, Sorting} from '../../components/aggregation';
-import {
-  Aggregation,
-  Aggregator,
-  createIITable,
-  selectTracksAndGetDataset,
-} from '../../components/aggregation_adapter';
-import {AreaSelection} from '../../public/selection';
-import {THREAD_STATE_TRACK_KIND} from '../../public/track_kinds';
+import {ColumnDef, Sorting, BarChartData} from '../../public/aggregation';
+import {Aggregation, AreaSelection} from '../../public/selection';
 import {Engine} from '../../trace_processor/engine';
 import {LONG, NUM, STR, STR_NULL} from '../../trace_processor/query_result';
+import {AreaSelectionAggregator} from '../../public/selection';
 import {colorForThreadState} from './common';
+import {THREAD_STATE_TRACK_KIND} from '../../public/track_kinds';
+import {
+  ii,
+  selectTracksAndGetDataset,
+} from '../../components/aggregation_adapter';
 
-export class ThreadStateSelectionAggregator implements Aggregator {
+export class ThreadStateSelectionAggregator implements AreaSelectionAggregator {
   readonly id = 'thread_state_aggregation';
 
   probe(area: AreaSelection): Aggregation | undefined {
@@ -49,12 +47,7 @@ export class ThreadStateSelectionAggregator implements Aggregator {
 
     return {
       prepareData: async (engine: Engine) => {
-        await using iiTable = await createIITable(
-          engine,
-          dataset,
-          area.start,
-          area.end,
-        );
+        const iiDataset = await ii(engine, this.id, dataset, area);
 
         await engine.query(`
           create or replace perfetto table ${this.id} as
@@ -67,7 +60,7 @@ export class ThreadStateSelectionAggregator implements Aggregator {
             sum(tstate.dur) AS total_dur,
             sum(tstate.dur) / count() as avg_dur,
             count() as occurrences
-          from ${iiTable.name} tstate
+          from (${iiDataset.query()}) tstate
           join thread using (utid)
           left join process using (upid)
           group by utid, state
@@ -77,7 +70,7 @@ export class ThreadStateSelectionAggregator implements Aggregator {
           select
             tstate.state as state,
             sum(dur) as totalDur
-          from (${iiTable.name}) tstate
+          from (${iiDataset.query()}) tstate
           join thread using (utid)
           group by tstate.state
         `;
@@ -85,15 +78,16 @@ export class ThreadStateSelectionAggregator implements Aggregator {
 
         const it = result.iter({
           state: STR_NULL,
-          totalDur: LONG,
+          totalDur: NUM,
         });
 
         const states: BarChartData[] = [];
         for (let i = 0; it.valid(); ++i, it.next()) {
           const name = it.state ?? 'Unknown';
+          const ms = it.totalDur / 1000000;
           states.push({
-            title: `${name}: ${Duration.humanise(it.totalDur)}`,
-            value: Number(it.totalDur),
+            name,
+            timeInStateMs: ms,
             color: colorForThreadState(name),
           });
         }
@@ -110,37 +104,51 @@ export class ThreadStateSelectionAggregator implements Aggregator {
     return [
       {
         title: 'Process',
+        kind: 'STRING',
+        columnConstructor: Uint16Array,
         columnId: 'process_name',
       },
       {
         title: 'PID',
+        kind: 'NUMBER',
+        columnConstructor: Float64Array,
         columnId: 'pid',
       },
       {
         title: 'Thread',
+        kind: 'STRING',
+        columnConstructor: Uint16Array,
         columnId: 'thread_name',
       },
       {
         title: 'TID',
+        kind: 'NUMBER',
+        columnConstructor: Float64Array,
         columnId: 'tid',
       },
       {
         title: 'State',
+        kind: 'STRING',
+        columnConstructor: Uint16Array,
         columnId: 'state',
       },
       {
-        title: 'Wall duration',
-        formatHint: 'DURATION_NS',
+        title: 'Wall duration (ms)',
+        kind: 'TIMESTAMP_NS',
+        columnConstructor: Float64Array,
         columnId: 'total_dur',
         sum: true,
       },
       {
-        title: 'Avg Wall duration',
-        formatHint: 'DURATION_NS',
+        title: 'Avg Wall duration (ms)',
+        kind: 'TIMESTAMP_NS',
+        columnConstructor: Float64Array,
         columnId: 'avg_dur',
       },
       {
         title: 'Occurrences',
+        kind: 'NUMBER',
+        columnConstructor: Uint16Array,
         columnId: 'occurrences',
         sum: true,
       },

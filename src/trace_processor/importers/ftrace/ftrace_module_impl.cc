@@ -19,7 +19,6 @@
 #include "perfetto/trace_processor/trace_blob_view.h"
 #include "src/trace_processor/importers/ftrace/ftrace_parser.h"
 #include "src/trace_processor/importers/ftrace/ftrace_tokenizer.h"
-#include "src/trace_processor/importers/ftrace/generic_ftrace_tracker.h"
 #include "src/trace_processor/importers/proto/proto_importer_module.h"
 
 #include "protos/perfetto/trace/trace_packet.pbzero.h"
@@ -30,9 +29,7 @@ namespace trace_processor {
 using perfetto::protos::pbzero::TracePacket;
 
 FtraceModuleImpl::FtraceModuleImpl(TraceProcessorContext* context)
-    : generic_tracker_(context),
-      tokenizer_(context, &generic_tracker_),
-      parser_(context, &generic_tracker_) {
+    : tokenizer_(context), parser_(context) {
   RegisterForField(TracePacket::kFtraceEventsFieldNumber, context);
   RegisterForField(TracePacket::kFtraceStatsFieldNumber, context);
 }
@@ -54,9 +51,8 @@ ModuleResult FtraceModuleImpl::TokenizePacket(
       return parser_.ParseFtraceStats(decoder.ftrace_stats(),
                                       decoder.trusted_packet_sequence_id());
     }
-    default:
-      return ModuleResult::Ignored();
   }
+  return ModuleResult::Ignored();
 }
 
 }  // namespace trace_processor

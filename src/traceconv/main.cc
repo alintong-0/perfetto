@@ -14,24 +14,18 @@
  * limitations under the License.
  */
 
-#include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
+#include <stdio.h>
+
 #include <fstream>
 #include <iostream>
-#include <iterator>
-#include <string>
+#include <limits>
 #include <vector>
 
-#include "perfetto/base/build_config.h"
 #include "perfetto/base/logging.h"
 #include "perfetto/ext/base/string_utils.h"
 #include "perfetto/ext/base/version.h"
-#include "src/protozero/text_to_proto/text_to_proto.h"
 #include "src/traceconv/deobfuscate_profile.h"
 #include "src/traceconv/symbolize_profile.h"
-#include "src/traceconv/trace.descriptor.h"
 #include "src/traceconv/trace_to_firefox.h"
 #include "src/traceconv/trace_to_hprof.h"
 #include "src/traceconv/trace_to_json.h"
@@ -47,7 +41,8 @@
 #include <unistd.h>
 #endif
 
-namespace perfetto::trace_to_text {
+namespace perfetto {
+namespace trace_to_text {
 namespace {
 
 int Usage(const char* argv0) {
@@ -56,7 +51,7 @@ int Usage(const char* argv0) {
       "Usage: %s MODE [OPTIONS] [input file] [output file]\n"
       "modes:\n"
       "  systrace|json|ctrace|text|profile|hprof|symbolize|deobfuscate|firefox"
-      "|java_heap_profile|decompress_packets|binary\n"
+      "|java_heap_profile|decompress_packets\n"
       "options:\n"
       "  [--truncate start|end]\n"
       "  [--full-sort]\n"
@@ -81,23 +76,6 @@ uint64_t StringToUint64OrDie(const char* str) {
   return number;
 }
 
-int TextToTrace(std::istream* input, std::ostream* output) {
-  std::string trace_text(std::istreambuf_iterator<char>{*input},
-                         std::istreambuf_iterator<char>{});
-  auto proto_status =
-      protozero::TextToProto(kTraceDescriptor.data(), kTraceDescriptor.size(),
-                             ".perfetto.protos.Trace", "trace", trace_text);
-  if (!proto_status.ok()) {
-    PERFETTO_ELOG("Failed to parse trace: %s",
-                  proto_status.status().c_message());
-    return 1;
-  }
-  const std::vector<uint8_t>& trace_proto = proto_status.value();
-  output->write(reinterpret_cast<const char*>(trace_proto.data()),
-                static_cast<int64_t>(trace_proto.size()));
-  return 0;
-}
-
 int Main(int argc, char** argv) {
   std::vector<const char*> positional_args;
   Keep truncate_keep = Keep::kAll;
@@ -110,8 +88,8 @@ int Main(int argc, char** argv) {
     if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
       printf("%s\n", base::GetVersionString());
       return 0;
-    }
-    if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--truncate") == 0) {
+    } else if (strcmp(argv[i], "-t") == 0 ||
+               strcmp(argv[i], "--truncate") == 0) {
       i++;
       if (i <= argc && strcmp(argv[i], "start") == 0) {
         truncate_keep = Keep::kStart;
@@ -199,10 +177,6 @@ int Main(int argc, char** argv) {
     return 1;
   }
 
-  if (format == "binary") {
-    return TextToTrace(input_stream, output_stream);
-  }
-
   if (format == "json")
     return TraceToJson(input_stream, output_stream, /*compress=*/false,
                        truncate_keep, full_sort);
@@ -265,7 +239,8 @@ int Main(int argc, char** argv) {
 }
 
 }  // namespace
-}  // namespace perfetto::trace_to_text
+}  // namespace trace_to_text
+}  // namespace perfetto
 
 int main(int argc, char** argv) {
   return perfetto::trace_to_text::Main(argc, argv);

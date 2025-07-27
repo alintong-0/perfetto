@@ -23,6 +23,7 @@
 #include <string_view>
 #include <tuple>
 
+#include "perfetto/ext/base/hash.h"
 #include "src/trace_processor/containers/string_pool.h"
 
 namespace perfetto::trace_processor::tracks {
@@ -62,7 +63,7 @@ struct NameBlueprintT {
 struct BlueprintBase {
   std::string_view event_type;
   std::string_view type;
-  base::FnvHasher hasher;
+  base::Hasher hasher;
   std::array<DimensionBlueprintBase, 8> dimension_blueprints;
 };
 
@@ -97,7 +98,7 @@ struct UnitBlueprintT {
 template <typename BlueprintT, typename Dims>
 constexpr uint64_t HashFromBlueprintAndDimensions(const BlueprintT& bp,
                                                   const Dims& dims) {
-  base::FnvHasher hasher(bp.hasher);
+  base::Hasher hasher(bp.hasher);
   std::apply([&](auto&&... args) { ((hasher.Update(args)), ...); }, dims);
   return hasher.digest();
 }

@@ -91,10 +91,10 @@ namespace perfetto::trace_processor {
 // - This function is not intended to be used directly from SQL: instead macros
 //   exist in the standard library, wrapping it and making it user-friendly.
 struct StructuralTreePartition
-    : public sqlite::AggregateFunction<StructuralTreePartition> {
+    : public SqliteAggregateFunction<StructuralTreePartition> {
   static constexpr char kName[] = "__intrinsic_structural_tree_partition";
   static constexpr int kArgCount = 3;
-  using UserData = StringPool;
+  using UserDataContext = StringPool;
 
   static void Step(sqlite3_context*, int argc, sqlite3_value** argv);
   static void Final(sqlite3_context* ctx);

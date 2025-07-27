@@ -25,11 +25,11 @@
 namespace perfetto::predefined_tracepoints {
 std::map<std::string, base::FlatSet<GroupAndName>> GetPredefinedTracePoints(
     const ProtoTranslationTable* table,
-    Tracefs* ftrace);
+    FtraceProcfs* ftrace);
 
 std::map<std::string, base::FlatSet<GroupAndName>>
 GetAccessiblePredefinedTracePoints(const ProtoTranslationTable* table,
-                                   Tracefs* ftrace);
+                                   FtraceProcfs* ftrace);
 
 }  // namespace perfetto::predefined_tracepoints
 

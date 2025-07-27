@@ -21,29 +21,20 @@ import {
   QueryNodeState,
 } from '../../query_node';
 import {
-  ColumnInfo,
-  columnInfoFromName,
-  newColumnInfoList,
-} from '../column_info';
+  ColumnControllerRow,
+  columnControllerRowFromName,
+  newColumnControllerRows,
+} from '../column_controller';
 import protos from '../../../../protos';
-import {Editor} from '../../../../widgets/editor';
-import {Icon} from '../../../../widgets/icon';
-import {Icons} from '../../../../base/semantic_icons';
+import {TextInput} from '../../../../widgets/text_input';
 import {
   createFiltersProto,
   createGroupByProto,
 } from '../operations/operation_component';
-import {
-  QueryHistoryComponent,
-  queryHistoryStorage,
-} from '../../../../components/widgets/query_history';
-import {Trace} from '../../../../public/trace';
 
-export interface SqlSourceState extends QueryNodeState {
+export interface SqlSourceAttrs extends QueryNodeState {
   sql?: string;
-  onExecute?: (sql: string) => void;
-  responseError?: Error;
-  trace: Trace;
+  sqlColumns?: string[];
 }
 
 export class SqlSourceNode implements QueryNode {
@@ -51,40 +42,37 @@ export class SqlSourceNode implements QueryNode {
   readonly prevNode = undefined;
   nextNode?: QueryNode;
 
-  sourceCols: ColumnInfo[];
-  finalCols: ColumnInfo[];
+  readonly sourceCols: ColumnControllerRow[];
+  readonly finalCols: ColumnControllerRow[];
 
-  readonly state: SqlSourceState;
-  private text: string;
+  readonly state: SqlSourceAttrs;
 
-  constructor(attrs: SqlSourceState) {
+  constructor(attrs: SqlSourceAttrs) {
     this.state = attrs;
-    this.sourceCols = attrs.sourceCols ?? [];
+    this.sourceCols =
+      attrs.sqlColumns?.map((c) => columnControllerRowFromName(c)) ?? [];
     this.finalCols = createFinalColumns(this);
-    this.text = this.state.sql ?? '';
-  }
-
-  setSourceColumns(columns: string[]) {
-    this.state.sourceCols = columns.map((c) => columnInfoFromName(c));
-    m.redraw();
   }
 
   getStateCopy(): QueryNodeState {
-    const newState: SqlSourceState = {
+    const newState: SqlSourceAttrs = {
       sql: this.state.sql,
-      onExecute: this.state.onExecute,
-      sourceCols: newColumnInfoList(this.sourceCols),
-      groupByColumns: [],
-      filters: [],
-      aggregations: [],
+      sqlColumns: this.state.sqlColumns,
+      sourceCols: newColumnControllerRows(this.sourceCols),
+      groupByColumns: newColumnControllerRows(this.state.groupByColumns),
+      filters: this.state.filters.map((f) => ({...f})),
+      aggregations: this.state.aggregations.map((a) => ({...a})),
       customTitle: this.state.customTitle,
-      trace: this.state.trace,
     };
     return newState;
   }
 
   validate(): boolean {
-    return this.state.sql !== undefined && this.state.sql.trim() !== '';
+    return (
+      this.state.sql !== undefined &&
+      this.state.sqlColumns !== undefined &&
+      this.sourceCols.length > 0
+    );
   }
 
   getTitle(): string {
@@ -97,13 +85,10 @@ export class SqlSourceNode implements QueryNode {
     const sqlProto = new protos.PerfettoSqlStructuredQuery.Sql();
 
     if (this.state.sql) sqlProto.sql = this.state.sql;
-    sqlProto.columnNames = this.state.sourceCols.map((c) => c.column.name);
+    if (this.state.sqlColumns) sqlProto.columnNames = this.state.sqlColumns;
     sq.sql = sqlProto;
 
-    const filtersProto = createFiltersProto(
-      this.state.filters,
-      this.sourceCols,
-    );
+    const filtersProto = createFiltersProto(this.state.filters);
     if (filtersProto) sq.filters = filtersProto;
     const groupByProto = createGroupByProto(
       this.state.groupByColumns,
@@ -116,63 +101,45 @@ export class SqlSourceNode implements QueryNode {
     return sq;
   }
 
-  nodeSpecificModify(): m.Child {
-    const runQuery = (sql: string) => {
-      this.state.sql = sql.trim();
-      if (this.state.onExecute) {
-        this.state.onExecute(this.state.sql);
-      }
-      m.redraw();
-    };
-
+  coreModify(): m.Child {
     return m(
-      '.sql-source-node',
+      '',
       m(
-        'div',
-        {
-          style: {
-            minHeight: '400px',
-            backgroundColor: '#282c34',
-            position: 'relative',
+        '',
+        'Sql ',
+        m(TextInput, {
+          id: 'sql_source',
+          type: 'string',
+          oninput: (e: Event) => {
+            if (!e.target) return;
+            this.state.sql = (e.target as HTMLInputElement).value
+              .trim()
+              .split(';')[0];
           },
-        },
-        this.state.responseError &&
-          m(Icon, {
-            icon: Icons.Warning,
-            filled: true,
-            style: {
-              color: 'yellow',
-              position: 'absolute',
-              top: '10px',
-              right: '10px',
-              zIndex: 1,
-              fontSize: '2rem',
-            } as m.Attributes['style'],
-            title:
-              `NOT A VALID NODE.\nCan't generate proto based on provided query.\n\n` +
-              `Response error: ${this.state.responseError.message}`,
-          }),
-        m(Editor, {
-          text: this.text,
-          onUpdate: (text: string) => {
-            this.text = text;
-          },
-          onExecute: (text: string) => {
-            queryHistoryStorage.saveQuery(text);
-            runQuery(text);
-          },
-          autofocus: true,
         }),
       ),
-      m(QueryHistoryComponent, {
-        className: '.pf-query-history-container',
-        trace: this.state.trace,
-        runQuery,
-        setQuery: (q: string) => {
-          this.text = q;
-          m.redraw();
-        },
-      }),
+      m(
+        '',
+        'Column names (comma separated strings) ',
+        m(TextInput, {
+          id: 'columns',
+          type: 'string',
+          oninput: (e: Event) => {
+            if (!e.target) return;
+            this.state.sqlColumns = (e.target as HTMLInputElement).value
+              .split(',')
+              .map((col) => col.trim())
+              .filter(Boolean);
+            this.state.sourceCols = this.state.sqlColumns.map((c) =>
+              columnControllerRowFromName(c, true),
+            );
+            this.state.groupByColumns = newColumnControllerRows(
+              this.state.sourceCols,
+              false,
+            );
+          },
+        }),
+      ),
     );
   }
 }

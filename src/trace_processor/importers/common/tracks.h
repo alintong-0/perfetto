@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <tuple>
 
+#include "perfetto/ext/base/hash.h"
 #include "perfetto/ext/base/string_view.h"
 #include "src/trace_processor/containers/string_pool.h"
 #include "src/trace_processor/importers/common/tracks_internal.h"
@@ -47,7 +48,7 @@ constexpr auto SliceBlueprint(const char type[],
       {
           "slice",
           type,
-          base::FnvHasher::CreatePartial(type),
+          base::Hasher::CreatePartial(type),
           dims_array,
       },
       name,
@@ -72,7 +73,7 @@ constexpr auto CounterBlueprint(const char type[],
       {
           "counter",
           type,
-          base::FnvHasher::CreatePartial(type),
+          base::Hasher::CreatePartial(type),
           dims_array,
       },
       name,
@@ -95,11 +96,6 @@ constexpr auto UintDimensionBlueprint(const char name[]) {
 // Adds a string dimension with the given name.
 constexpr auto StringDimensionBlueprint(const char name[]) {
   return DimensionBlueprintT<base::StringView>{{name}};
-}
-
-// Adds a string dimension with the given name.
-constexpr auto StringIdDimensionBlueprint(const char name[]) {
-  return DimensionBlueprintT<StringPool::Id>{{name}};
 }
 
 // Adds a int64_t dimension with the given name.

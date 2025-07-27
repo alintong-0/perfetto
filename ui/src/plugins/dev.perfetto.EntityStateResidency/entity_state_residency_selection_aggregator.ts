@@ -13,13 +13,15 @@
 // limitations under the License.
 
 import {Duration} from '../../base/time';
-import {ColumnDef, Sorting} from '../../components/aggregation';
-import {Aggregator} from '../../components/aggregation_adapter';
+import {ColumnDef, Sorting} from '../../public/aggregation';
 import {AreaSelection} from '../../public/selection';
 import {COUNTER_TRACK_KIND} from '../../public/track_kinds';
 import {Engine} from '../../trace_processor/engine';
+import {AreaSelectionAggregator} from '../../public/selection';
 
-export class EntityStateResidencySelectionAggregator implements Aggregator {
+export class EntityStateResidencySelectionAggregator
+  implements AreaSelectionAggregator
+{
   readonly id = 'entity_state_residency_aggregation';
 
   probe(area: AreaSelection) {
@@ -80,25 +82,34 @@ export class EntityStateResidencySelectionAggregator implements Aggregator {
     return [
       {
         title: 'Entity',
+        kind: 'STRING',
+        columnConstructor: Uint16Array,
         columnId: 'entity_name',
       },
       {
         title: 'State',
+        kind: 'STRING',
+        columnConstructor: Uint16Array,
         columnId: 'state_name',
       },
       {
         title: 'Time in state (ms)',
+        kind: 'NUMBER',
+        columnConstructor: Float64Array,
         columnId: 'delta_value',
         sum: true,
       },
       {
-        title: 'Time in state',
-        formatHint: 'PERCENT',
+        title: 'Time in state (%)',
+        kind: 'Number',
+        columnConstructor: Float64Array,
         columnId: 'rate_percent',
         sum: true,
       },
       {
         title: 'Sample Count',
+        kind: 'Number',
+        columnConstructor: Float64Array,
         columnId: 'count',
       },
     ];

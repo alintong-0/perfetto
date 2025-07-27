@@ -36,7 +36,6 @@ PERFETTO_PB_MSG_DECL(perfetto_protos_AppWakelocksConfig);
 PERFETTO_PB_MSG_DECL(perfetto_protos_ChromeConfig);
 PERFETTO_PB_MSG_DECL(perfetto_protos_ChromiumHistogramSamplesConfig);
 PERFETTO_PB_MSG_DECL(perfetto_protos_ChromiumSystemMetricsConfig);
-PERFETTO_PB_MSG_DECL(perfetto_protos_CpuPerUidConfig);
 PERFETTO_PB_MSG_DECL(perfetto_protos_EtwConfig);
 PERFETTO_PB_MSG_DECL(perfetto_protos_FrozenFtraceConfig);
 PERFETTO_PB_MSG_DECL(perfetto_protos_FtraceConfig);
@@ -51,7 +50,6 @@ PERFETTO_PB_MSG_DECL(perfetto_protos_NetworkPacketTraceConfig);
 PERFETTO_PB_MSG_DECL(perfetto_protos_PackagesListConfig);
 PERFETTO_PB_MSG_DECL(perfetto_protos_PerfEventConfig);
 PERFETTO_PB_MSG_DECL(perfetto_protos_PixelModemConfig);
-PERFETTO_PB_MSG_DECL(perfetto_protos_PriorityBoostConfig);
 PERFETTO_PB_MSG_DECL(perfetto_protos_ProcessStatsConfig);
 PERFETTO_PB_MSG_DECL(perfetto_protos_ProtoLogConfig);
 PERFETTO_PB_MSG_DECL(perfetto_protos_StatsdTracingConfig);
@@ -130,11 +128,6 @@ PERFETTO_PB_FIELD(perfetto_protos_DataSourceConfig,
                   enum perfetto_protos_DataSourceConfig_BufferExhaustedPolicy,
                   buffer_exhausted_policy,
                   9);
-PERFETTO_PB_FIELD(perfetto_protos_DataSourceConfig,
-                  MSG,
-                  perfetto_protos_PriorityBoostConfig,
-                  priority_boost,
-                  10);
 PERFETTO_PB_FIELD(perfetto_protos_DataSourceConfig,
                   MSG,
                   perfetto_protos_FtraceConfig,
@@ -315,11 +308,6 @@ PERFETTO_PB_FIELD(perfetto_protos_DataSourceConfig,
                   perfetto_protos_AppWakelocksConfig,
                   app_wakelocks_config,
                   135);
-PERFETTO_PB_FIELD(perfetto_protos_DataSourceConfig,
-                  MSG,
-                  perfetto_protos_CpuPerUidConfig,
-                  cpu_per_uid_config,
-                  137);
 PERFETTO_PB_FIELD(perfetto_protos_DataSourceConfig,
                   STRING,
                   const char*,

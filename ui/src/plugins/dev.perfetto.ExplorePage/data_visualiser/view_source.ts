@@ -17,9 +17,10 @@ import {runQueryForQueryTable} from '../../../components/query_table/queries';
 import {ChartAttrs} from '../../../components/widgets/charts/chart';
 import {Trace} from '../../../public/trace';
 import {Row} from '../../../trace_processor/query_result';
-import {analyzeNode, Query, QueryNode} from '../query_node';
+import {QueryNode} from '../query_node';
 import {SqlTableState} from '../../../components/widgets/sql/table/state';
 import {createTableColumnFromPerfettoSql} from '../../dev.perfetto.SqlModules/sql_modules';
+import {analyzeNode, Query} from '../query_builder/query_node_explorer';
 import {Filters} from '../../../components/widgets/sql/table/filters';
 import {buildSqlQuery} from '../../../components/widgets/sql/table/query_builder';
 

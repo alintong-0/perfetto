@@ -25,7 +25,7 @@ import {PreflightCheckRenderer} from './preflight_check_renderer';
 import {Select} from '../../../widgets/select';
 import {DisposableStack} from '../../../base/disposable_stack';
 import {CurrentTracingSession, RecordingManager} from '../recording_manager';
-import {download} from '../../../base/download_utils';
+import {downloadData} from '../../../base/download_utils';
 import {RecordSubpage} from '../config/config_interfaces';
 import {RecordPluginSchema} from '../serialization_schema';
 import {Checkbox} from '../../../widgets/checkbox';
@@ -261,7 +261,6 @@ type SessionMgmtAttrs = {recMgr: RecordingManager; target: RecordingTarget};
 class SessionMgmtRenderer implements m.ClassComponent<SessionMgmtAttrs> {
   view({attrs}: m.CVnode<SessionMgmtAttrs>) {
     const session = attrs.recMgr.currentSession;
-    const isValid = attrs.recMgr.recordConfig.traceConfig.mode !== 'LONG_TRACE';
     const isRecording = session?.state === 'RECORDING';
     return [
       m('header', 'Tracing session'),
@@ -272,7 +271,7 @@ class SessionMgmtRenderer implements m.ClassComponent<SessionMgmtAttrs> {
           icon: 'not_started',
           iconFilled: true,
           className: 'start',
-          disabled: isRecording || !isValid,
+          disabled: isRecording,
           onclick: () => attrs.recMgr.startTracing().then(() => m.redraw()),
         }),
         m(Button, {
@@ -280,7 +279,7 @@ class SessionMgmtRenderer implements m.ClassComponent<SessionMgmtAttrs> {
           icon: 'stop',
           className: 'stop',
           iconFilled: true,
-          disabled: !isRecording || !isValid,
+          disabled: !isRecording,
           onclick: () => session?.session?.stop().then(() => m.redraw()),
         }),
         m(Button, {
@@ -288,7 +287,7 @@ class SessionMgmtRenderer implements m.ClassComponent<SessionMgmtAttrs> {
           icon: 'cancel',
           className: 'cancel',
           iconFilled: true,
-          disabled: !isRecording || !isValid,
+          disabled: !isRecording,
           onclick: () => session?.session?.cancel().then(() => m.redraw()),
         }),
         m(Checkbox, {
@@ -369,11 +368,7 @@ class SessionStateRenderer implements m.ClassComponent<SessionStateAttrs> {
             m(Button, {
               label: 'Download',
               icon: 'download',
-              onclick: () =>
-                download({
-                  fileName: this.session.fileName,
-                  content: traceData,
-                }),
+              onclick: () => downloadData(this.session.fileName, traceData),
             }),
           ),
         ),

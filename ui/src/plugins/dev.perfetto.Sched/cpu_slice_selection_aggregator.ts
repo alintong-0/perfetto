@@ -12,19 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {ColumnDef, Sorting} from '../../components/aggregation';
-import {
-  Aggregation,
-  Aggregator,
-  createIITable,
-  selectTracksAndGetDataset,
-} from '../../components/aggregation_adapter';
-import {AreaSelection} from '../../public/selection';
+import {ColumnDef, Sorting} from '../../public/aggregation';
+import {Aggregation, AreaSelection} from '../../public/selection';
 import {CPU_SLICE_TRACK_KIND} from '../../public/track_kinds';
 import {Engine} from '../../trace_processor/engine';
+import {AreaSelectionAggregator} from '../../public/selection';
 import {LONG, NUM} from '../../trace_processor/query_result';
+import {
+  ii,
+  selectTracksAndGetDataset,
+} from '../../components/aggregation_adapter';
 
-export class CpuSliceSelectionAggregator implements Aggregator {
+export class CpuSliceSelectionAggregator implements AreaSelectionAggregator {
   readonly id = 'cpu_aggregation';
 
   probe(area: AreaSelection): Aggregation | undefined {
@@ -43,12 +42,7 @@ export class CpuSliceSelectionAggregator implements Aggregator {
 
     return {
       prepareData: async (engine: Engine) => {
-        await using iiTable = await createIITable(
-          engine,
-          dataset,
-          area.start,
-          area.end,
-        );
+        const iiDataset = await ii(engine, this.id, dataset, area);
 
         await engine.query(`
           create or replace perfetto table ${this.id} as
@@ -62,7 +56,7 @@ export class CpuSliceSelectionAggregator implements Aggregator {
             count() as occurrences
           from process
           join thread using (upid)
-          join (${iiTable.name}) as sched using (utid)
+          join (${iiDataset.query()}) as sched using (utid)
           group by utid
         `);
 
@@ -85,33 +79,45 @@ export class CpuSliceSelectionAggregator implements Aggregator {
     return [
       {
         title: 'Process',
+        kind: 'STRING',
+        columnConstructor: Uint16Array,
         columnId: 'process_name',
       },
       {
         title: 'PID',
+        kind: 'NUMBER',
+        columnConstructor: Float64Array,
         columnId: 'pid',
       },
       {
         title: 'Thread',
+        kind: 'STRING',
+        columnConstructor: Uint16Array,
         columnId: 'thread_name',
       },
       {
         title: 'TID',
+        kind: 'NUMBER',
+        columnConstructor: Float64Array,
         columnId: 'tid',
       },
       {
-        title: 'Wall duration',
-        formatHint: 'DURATION_NS',
+        title: 'Wall duration (ms)',
+        kind: 'TIMESTAMP_NS',
+        columnConstructor: Float64Array,
         columnId: 'total_dur',
         sum: true,
       },
       {
-        title: 'Avg Wall duration',
-        formatHint: 'DURATION_NS',
+        title: 'Avg Wall duration (ms)',
+        kind: 'TIMESTAMP_NS',
+        columnConstructor: Float64Array,
         columnId: 'avg_dur',
       },
       {
         title: 'Occurrences',
+        kind: 'NUMBER',
+        columnConstructor: Uint16Array,
         columnId: 'occurrences',
         sum: true,
       },

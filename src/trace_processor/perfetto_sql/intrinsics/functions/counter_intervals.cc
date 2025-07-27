@@ -44,11 +44,11 @@
 namespace perfetto::trace_processor::perfetto_sql {
 namespace {
 
-struct CounterIntervals : public sqlite::Function<CounterIntervals> {
+struct CounterIntervals : public SqliteFunction<CounterIntervals> {
   static constexpr char kName[] = "__intrinsic_counter_intervals";
   static constexpr int kArgCount = 3;
 
-  struct UserData {
+  struct UserDataContext {
     PerfettoSqlEngine* engine;
     StringPool* pool;
   };
@@ -152,8 +152,8 @@ struct CounterIntervals : public sqlite::Function<CounterIntervals> {
 base::Status RegisterCounterIntervalsFunctions(PerfettoSqlEngine& engine,
                                                StringPool* pool) {
   return engine.RegisterSqliteFunction<CounterIntervals>(
-      std::make_unique<CounterIntervals::UserData>(
-          CounterIntervals::UserData{&engine, pool}));
+      std::make_unique<CounterIntervals::UserDataContext>(
+          CounterIntervals::UserDataContext{&engine, pool}));
 }
 
 }  // namespace perfetto::trace_processor::perfetto_sql

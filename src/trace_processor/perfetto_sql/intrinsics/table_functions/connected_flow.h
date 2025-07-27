@@ -74,6 +74,7 @@ class ConnectedFlow : public StaticTableFunction {
   dataframe::DataframeSpec CreateSpec() override;
   std::string TableName() override;
   uint32_t GetArgumentCount() const override;
+  uint32_t EstimateRowCount() override;
 
  private:
   Mode mode_;

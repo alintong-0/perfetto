@@ -13,30 +13,23 @@
 // limitations under the License.
 
 import m from 'mithril';
-import {classForIntent, HTMLAttrs, Intent} from './common';
+import {HTMLAttrs} from './common';
 import {Icon} from './icon';
-import {classNames} from '../base/classnames';
 
 interface CalloutAttrs extends HTMLAttrs {
   // An icon to show to the left of the callout content.
-  readonly icon?: string;
-
-  // Color the callout by specifying an intent.
-  readonly intent?: Intent;
+  icon?: string;
 }
 
 export class Callout implements m.ClassComponent<CalloutAttrs> {
   view({attrs, children}: m.CVnode<CalloutAttrs>) {
-    const {icon, intent = Intent.None, className, ...htmlAttrs} = attrs;
+    const {icon, ...htmlAttrs} = attrs;
 
     return m(
       '.pf-callout',
-      {
-        className: classNames(classForIntent(intent), className),
-        ...htmlAttrs,
-      },
+      htmlAttrs,
       icon && m(Icon, {className: 'pf-left-icon', icon}),
-      m('span', children),
+      children,
     );
   }
 }

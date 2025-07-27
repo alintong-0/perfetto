@@ -164,7 +164,8 @@ class ProtoTraceTokenizer {
       }
 
       // If there's not enough bytes in the reader, then we cannot do anymore.
-      if (field_size > avail - hdr_size) {
+      size_t size_incl_header = hdr_size + field_size;
+      if (size_incl_header > avail) {
         return base::OkStatus();
       }
 

@@ -29,7 +29,6 @@
 #include "protos/perfetto/trace/interned_data/interned_data.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_event.pbzero.h"
 
-#include <mutex>
 #include <unordered_map>
 
 namespace perfetto {
@@ -183,18 +182,8 @@ struct TrackEventIncrementalState {
 // namespaces.
 class PERFETTO_EXPORT_COMPONENT TrackEventInternal {
  public:
-  static TrackEventInternal& GetInstance();
-
-  std::vector<const TrackEventCategoryRegistry*> AddRegistry(
-      const TrackEventCategoryRegistry*);
-  void EnableTracing(const protos::gen::TrackEventConfig& config,
-                     const DataSourceBase::SetupArgs&);
-  void DisableTracing(uint32_t internal_instance_index);
-
-  void ResetRegistriesForTesting();
-
   static bool Initialize(
-      const std::vector<const TrackEventCategoryRegistry*> registries,
+      const TrackEventCategoryRegistry&,
       bool (*register_data_source)(const DataSourceDescriptor&));
 
   static bool AddSessionObserver(const TrackEventCategoryRegistry&,
@@ -202,12 +191,17 @@ class PERFETTO_EXPORT_COMPONENT TrackEventInternal {
   static void RemoveSessionObserver(const TrackEventCategoryRegistry&,
                                     TrackEventSessionObserver*);
 
-  static void EnableRegistry(const TrackEventCategoryRegistry* registry,
-                             const protos::gen::TrackEventConfig& config,
+  static void EnableTracing(const TrackEventCategoryRegistry& registry,
+                            const protos::gen::TrackEventConfig& config,
+                            const DataSourceBase::SetupArgs&);
+  static void OnStart(const TrackEventCategoryRegistry&,
+                      const DataSourceBase::StartArgs&);
+  static void OnStop(const TrackEventCategoryRegistry&,
+                     const DataSourceBase::StopArgs&);
+  static void DisableTracing(const TrackEventCategoryRegistry& registry,
                              uint32_t internal_instance_index);
-  static void OnStart(const DataSourceBase::StartArgs&);
-  static void OnStop(const DataSourceBase::StopArgs&);
   static void WillClearIncrementalState(
+      const TrackEventCategoryRegistry&,
       const DataSourceBase::ClearIncrementalStateArgs&);
 
   static bool IsCategoryEnabled(const TrackEventCategoryRegistry& registry,
@@ -328,8 +322,6 @@ class PERFETTO_EXPORT_COMPONENT TrackEventInternal {
   static const Track kDefaultTrack;
 
  private:
-  std::vector<const TrackEventCategoryRegistry*> GetRegistries();
-
   static void ResetIncrementalState(TraceWriterBase* trace_writer,
                                     TrackEventIncrementalState* incr_state,
                                     const TrackEventTlsState& tls_state,
@@ -355,9 +347,6 @@ class PERFETTO_EXPORT_COMPONENT TrackEventInternal {
 
   static protos::pbzero::BuiltinClock clock_;
   static bool disallow_merging_with_system_tracks_;
-
-  std::mutex mu_;
-  std::vector<const TrackEventCategoryRegistry*> registries_;
 };
 
 template <typename TraceContext>

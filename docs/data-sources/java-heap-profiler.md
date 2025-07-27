@@ -57,19 +57,42 @@ select c.name, sum(o.self_size)
 |char[]              |              357720|
 |byte[]              |              350423|
 
-Using the standard library, we can query the normalize the graph into a tree,
-always taking the shortest path to the root and get cumulative sizes.
+We can use `experimental_flamegraph` to normalize the graph into a tree, always
+taking the shortest path to the root and get cumulative sizes.
+Note that this is **experimental** and the **API is subject to change**.
 From this we can see how much memory is being held by each type of object
 
-```sql
-INCLUDE PERFETTO MODULE android.memory.heap_graph.class_summary_tree;
+For that, we need to find the timestamp and upid of the graph.
 
-SELECT
-  -- The name of the class.
-  name,
-  -- The sum of `self_size` of this node and all descendants of this node.
-  cumulative_size
-FROM android_heap_graph_class_summary_tree;
+```sql
+select distinct graph_sample_ts, upid from heap_graph_object
+```
+
+|graph_sample_ts     |        upid        |
+|--------------------|--------------------|
+|     56785646801    |         1          |
+
+We can then use them to get the flamegraph data.
+
+```sql
+select name, cumulative_size
+from experimental_flamegraph(
+  -- The type of the profile from which the flamegraph is being generated.
+  -- Always 'graph' for Java heap graphs.
+  'graph',
+  -- The timestamp of the heap graph sample.
+  56785646801,
+  -- Timestamp constraints: not relevant and always null for Java heap graphs.
+  NULL,
+  -- The upid of the heap graph sample.
+  1,
+  -- The upid group: not relevant and always null for Java heap graphs.
+  NULL,
+  -- A regex for focusing on a particular node in the heapgraph: for advanced
+  -- use only.
+  NULL
+)
+order by 2 desc;
 ```
 
 | name | cumulative_size |

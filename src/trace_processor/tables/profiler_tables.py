@@ -36,98 +36,23 @@ PROFILER_SMAPS_TABLE = Table(
     class_name='ProfilerSmapsTable',
     sql_name='profiler_smaps',
     columns=[
-        C(
-            'upid',
-            CppUint32(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'ts',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('upid', CppUint32(), cpp_access=CppAccess.READ),
+        C('ts', CppInt64(), cpp_access=CppAccess.READ),
         C('path', CppString()),
-        C(
-            'size_kb',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'private_dirty_kb',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'swap_kb',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'file_name',
-            CppString(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'start_address',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'module_timestamp',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'module_debugid',
-            CppString(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'module_debug_path',
-            CppString(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'protection_flags',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'private_clean_resident_kb',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'shared_dirty_resident_kb',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'shared_clean_resident_kb',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('size_kb', CppInt64(), cpp_access=CppAccess.READ),
+        C('private_dirty_kb', CppInt64(), cpp_access=CppAccess.READ),
+        C('swap_kb', CppInt64(), cpp_access=CppAccess.READ),
+        C('file_name', CppString(), cpp_access=CppAccess.READ),
+        C('start_address', CppInt64(), cpp_access=CppAccess.READ),
+        C('module_timestamp', CppInt64(), cpp_access=CppAccess.READ),
+        C('module_debugid', CppString(), cpp_access=CppAccess.READ),
+        C('module_debug_path', CppString(), cpp_access=CppAccess.READ),
+        C('protection_flags', CppInt64(), cpp_access=CppAccess.READ),
+        C('private_clean_resident_kb', CppInt64(), cpp_access=CppAccess.READ),
+        C('shared_dirty_resident_kb', CppInt64(), cpp_access=CppAccess.READ),
+        C('shared_clean_resident_kb', CppInt64(), cpp_access=CppAccess.READ),
         C('locked_kb', CppInt64()),
-        C(
-            'proportional_resident_kb',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('proportional_resident_kb', CppInt64(), cpp_access=CppAccess.READ),
     ],
     tabledoc=TableDoc(
         doc='''
@@ -179,36 +104,11 @@ PACKAGE_LIST_TABLE = Table(
     class_name='PackageListTable',
     sql_name='package_list',
     columns=[
-        C(
-            'package_name',
-            CppString(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'uid',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'debuggable',
-            CppInt32(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'profileable_from_shell',
-            CppInt32(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'version_code',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('package_name', CppString(), cpp_access=CppAccess.READ),
+        C('uid', CppInt64(), cpp_access=CppAccess.READ),
+        C('debuggable', CppInt32(), cpp_access=CppAccess.READ),
+        C('profileable_from_shell', CppInt32(), cpp_access=CppAccess.READ),
+        C('version_code', CppInt64(), cpp_access=CppAccess.READ),
     ],
     tabledoc=TableDoc(
         doc='''
@@ -248,12 +148,7 @@ STACK_PROFILE_MAPPING_TABLE = Table(
             cpp_access=CppAccess.READ,
             cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
-        C(
-            'start_offset',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('start_offset', CppInt64(), cpp_access=CppAccess.READ),
         C(
             'start',
             CppInt64(),
@@ -266,12 +161,7 @@ STACK_PROFILE_MAPPING_TABLE = Table(
             cpp_access=CppAccess.READ,
             cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
-        C(
-            'load_bias',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('load_bias', CppInt64(), cpp_access=CppAccess.READ),
         C(
             'name',
             CppString(),
@@ -300,24 +190,11 @@ STACK_PROFILE_FRAME_TABLE = Table(
     class_name='StackProfileFrameTable',
     sql_name='stack_profile_frame',
     columns=[
-        C(
-            'name',
-            CppString(),
-            cpp_access=CppAccess.READ_AND_LOW_PERF_WRITE,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'mapping',
-            CppTableId(STACK_PROFILE_MAPPING_TABLE),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'rel_pc',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('name', CppString(), cpp_access=CppAccess.READ_AND_LOW_PERF_WRITE),
+        C('mapping',
+          CppTableId(STACK_PROFILE_MAPPING_TABLE),
+          cpp_access=CppAccess.READ),
+        C('rel_pc', CppInt64(), cpp_access=CppAccess.READ),
         C(
             'symbol_set_id',
             CppOptional(CppUint32()),
@@ -330,7 +207,6 @@ STACK_PROFILE_FRAME_TABLE = Table(
             'deobfuscated_name',
             CppOptional(CppString()),
             cpp_access=CppAccess.READ_AND_LOW_PERF_WRITE,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
     ],
     tabledoc=TableDoc(
@@ -362,7 +238,6 @@ STACK_PROFILE_CALLSITE_TABLE = Table(
             'depth',
             CppUint32(),
             cpp_access=CppAccess.READ_AND_LOW_PERF_WRITE,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
         C(
             'parent_id',
@@ -374,7 +249,6 @@ STACK_PROFILE_CALLSITE_TABLE = Table(
             'frame_id',
             CppTableId(STACK_PROFILE_FRAME_TABLE),
             cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
     ],
     tabledoc=TableDoc(
@@ -397,30 +271,14 @@ CPU_PROFILE_STACK_SAMPLE_TABLE = Table(
     class_name='CpuProfileStackSampleTable',
     sql_name='cpu_profile_stack_sample',
     columns=[
-        C(
-            'ts',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('ts', CppInt64(), cpp_access=CppAccess.READ),
         C(
             'callsite_id',
             CppTableId(STACK_PROFILE_CALLSITE_TABLE),
             cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
-        C(
-            'utid',
-            CppUint32(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'process_priority',
-            CppInt32(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('utid', CppUint32(), cpp_access=CppAccess.READ),
+        C('process_priority', CppInt32(), cpp_access=CppAccess.READ),
     ],
     tabledoc=TableDoc(
         doc='Table containing stack samples from CPU profiling.',
@@ -441,7 +299,6 @@ PERF_SESSION_TABLE = Table(
             'cmdline',
             CppOptional(CppString()),
             cpp_access=CppAccess.READ_AND_LOW_PERF_WRITE,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
     ],
     wrapping_sql_view=WrappingSqlView('perf_session'),
@@ -457,19 +314,8 @@ PERF_SAMPLE_TABLE = Table(
     class_name='PerfSampleTable',
     sql_name='perf_sample',
     columns=[
-        C(
-            'ts',
-            CppInt64(),
-            flags=ColumnFlag.SORTED,
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'utid',
-            CppUint32(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('ts', CppInt64(), flags=ColumnFlag.SORTED, cpp_access=CppAccess.READ),
+        C('utid', CppUint32(), cpp_access=CppAccess.READ),
         C('cpu', CppOptional(CppUint32())),
         C('cpu_mode', CppString()),
         C(
@@ -511,13 +357,7 @@ INSTRUMENTS_SAMPLE_TABLE = Table(
     class_name='InstrumentsSampleTable',
     sql_name='instruments_sample',
     columns=[
-        C(
-            'ts',
-            CppInt64(),
-            flags=ColumnFlag.SORTED,
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('ts', CppInt64(), flags=ColumnFlag.SORTED, cpp_access=CppAccess.READ),
         C('utid', CppUint32()),
         C('callsite_id', CppOptional(CppTableId(STACK_PROFILE_CALLSITE_TABLE))),
         C('cpu', CppOptional(CppUint32())),
@@ -550,24 +390,9 @@ SYMBOL_TABLE = Table(
             cpp_access=CppAccess.READ,
             cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
-        C(
-            'name',
-            CppString(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'source_file',
-            CppOptional(CppString()),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'line_number',
-            CppOptional(CppUint32()),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('name', CppString(), cpp_access=CppAccess.READ),
+        C('source_file', CppOptional(CppString()), cpp_access=CppAccess.READ),
+        C('line_number', CppOptional(CppUint32()), cpp_access=CppAccess.READ),
     ],
     tabledoc=TableDoc(
         doc='''
@@ -609,37 +434,14 @@ HEAP_PROFILE_ALLOCATION_TABLE = Table(
     sql_name='heap_profile_allocation',
     columns=[
         # TODO(b/193757386): readd the sorted flag once this bug is fixed.
-        C(
-            'ts',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'upid',
-            CppUint32(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('ts', CppInt64(), cpp_access=CppAccess.READ),
+        C('upid', CppUint32(), cpp_access=CppAccess.READ),
         C('heap_name', CppString()),
-        C(
-            'callsite_id',
-            CppTableId(STACK_PROFILE_CALLSITE_TABLE),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'count',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
-        C(
-            'size',
-            CppInt64(),
-            cpp_access=CppAccess.READ,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
-        ),
+        C('callsite_id',
+          CppTableId(STACK_PROFILE_CALLSITE_TABLE),
+          cpp_access=CppAccess.READ),
+        C('count', CppInt64(), cpp_access=CppAccess.READ),
+        C('size', CppInt64(), cpp_access=CppAccess.READ),
     ],
     tabledoc=TableDoc(
         doc='''
@@ -809,13 +611,11 @@ HEAP_GRAPH_CLASS_TABLE = Table(
             'location',
             CppOptional(CppString()),
             cpp_access=CppAccess.READ_AND_LOW_PERF_WRITE,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
         C(
             'superclass_id',
             CppOptional(CppSelfTableId()),
             cpp_access=CppAccess.READ_AND_LOW_PERF_WRITE,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
         # classloader_id should really be HeapGraphObject::id, but that
         # would create a loop, which is currently not possible.
@@ -824,7 +624,6 @@ HEAP_GRAPH_CLASS_TABLE = Table(
             'classloader_id',
             CppOptional(CppUint32()),
             cpp_access=CppAccess.READ_AND_LOW_PERF_WRITE,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
         C(
             'kind',
@@ -878,25 +677,21 @@ HEAP_GRAPH_OBJECT_TABLE = Table(
             sql_access=SqlAccess.HIGH_PERF,
             cpp_access=CppAccess.READ_AND_HIGH_PERF_WRITE,
             flags=ColumnFlag.DENSE,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
         C(
             'reachable',
             CppInt32(),
             cpp_access=CppAccess.READ_AND_LOW_PERF_WRITE,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
         C(
             'heap_type',
             CppOptional(CppString()),
             cpp_access=CppAccess.READ_AND_LOW_PERF_WRITE,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
         C(
             'type_id',
             CppTableId(HEAP_GRAPH_CLASS_TABLE),
             cpp_access=CppAccess.READ_AND_LOW_PERF_WRITE,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
         C(
             'root_type',
@@ -978,13 +773,11 @@ HEAP_GRAPH_REFERENCE_TABLE = Table(
             'field_type_name',
             CppString(),
             cpp_access=CppAccess.READ_AND_LOW_PERF_WRITE,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
         C(
             'deobfuscated_field_name',
             CppOptional(CppString()),
             cpp_access=CppAccess.READ_AND_LOW_PERF_WRITE,
-            cpp_access_duration=CppAccessDuration.POST_FINALIZATION,
         ),
     ],
     tabledoc=TableDoc(

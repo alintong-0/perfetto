@@ -63,6 +63,7 @@ class Descendant : public StaticTableFunction {
   dataframe::DataframeSpec CreateSpec() override;
   std::string TableName() override;
   uint32_t GetArgumentCount() const override;
+  uint32_t EstimateRowCount() override;
 
   static tables::SliceTable::ConstCursor MakeCursor(const tables::SliceTable&);
 

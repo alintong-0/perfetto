@@ -24,18 +24,13 @@ import {PerfettoPlugin} from '../../public/plugin';
 import {Trace} from '../../public/trace';
 import {Editor} from '../../widgets/editor';
 import {QueryPage} from './query_page';
-import {queryHistoryStorage} from '../../components/widgets/query_history';
-import {ResizeHandle} from '../../widgets/resize_handle';
-import {findRef, toHTMLElement} from '../../base/dom_utils';
-import {assertExists} from '../../base/logging';
-import {addQueryResultsTab} from '../../components/query_table/query_result_tab';
 
 export default class QueryPagePlugin implements PerfettoPlugin {
   static readonly id = 'dev.perfetto.QueryPage';
-  static addQueryPageMiniFlag: Flag;
+  static flag: Flag;
 
   static onActivate(app: App) {
-    QueryPagePlugin.addQueryPageMiniFlag = app.featureFlags.register({
+    QueryPagePlugin.flag = app.featureFlags.register({
       id: 'dev.perfetto.QueryPage',
       name: 'Enable mini query page tab',
       defaultValue: false,
@@ -45,53 +40,10 @@ export default class QueryPagePlugin implements PerfettoPlugin {
   }
 
   async onTraceLoad(trace: Trace): Promise<void> {
-    // The query page and tab share the same query data.
-    let executedQuery: string | undefined;
-    let queryResult: QueryResponse | undefined;
-    let editorText = '';
-
-    const onExecute = async (text: string) => {
-      if (!text) {
-        return;
-      }
-
-      queryHistoryStorage.saveQuery(text);
-
-      executedQuery = text;
-      queryResult = undefined;
-      queryResult = await runQueryForQueryTable(text, trace.engine);
-
-      // TODO(stevegolton): Just show the mini query page instead of adding an
-      // ephemeral tab.
-
-      // if (QueryPagePlugin.addQueryPageMiniFlag.get()) {
-      //   trace.tabs.showTab('dev.perfetto.QueryPage');
-      // }
-
-      addQueryResultsTab(
-        trace,
-        {
-          query: executedQuery,
-          title: 'Standalone Query',
-          prefetchedResponse: queryResult,
-        },
-        'analyze_page_query',
-      );
-    };
-
     trace.pages.registerPage({
       route: '/query',
-      render: () =>
-        m(QueryPage, {
-          trace,
-          editorText,
-          executedQuery,
-          queryResult,
-          onEditorContentUpdate: (text) => (editorText = text),
-          onExecute,
-        }),
+      render: () => m(QueryPage, {trace}),
     });
-
     trace.sidebar.addMenuItem({
       section: 'current_trace',
       text: 'Query (SQL)',
@@ -100,20 +52,13 @@ export default class QueryPagePlugin implements PerfettoPlugin {
       sortOrder: 1,
     });
 
-    if (QueryPagePlugin.addQueryPageMiniFlag.get()) {
+    if (QueryPagePlugin.flag.get()) {
       trace.tabs.registerTab({
         uri: 'dev.perfetto.QueryPage',
         isEphemeral: false,
         content: {
           render() {
-            return m(QueryPageMini, {
-              trace,
-              editorText,
-              executedQuery,
-              queryResult,
-              onEditorContentUpdate: (text) => (editorText = text),
-              onExecute,
-            });
+            return m(QueryPageMini, {trace});
           },
           getTitle() {
             return 'QueryPage Mini';
@@ -125,48 +70,30 @@ export default class QueryPagePlugin implements PerfettoPlugin {
 }
 
 interface QueryPageMiniAttrs {
-  trace: Trace;
-  editorText: string;
-  executedQuery?: string;
-  queryResult?: QueryResponse;
-  onEditorContentUpdate?(content: string): void;
-  onExecute?(query: string): void;
+  readonly trace: Trace;
 }
 
 class QueryPageMini implements m.ClassComponent<QueryPageMiniAttrs> {
-  private editorHeight: number = 0;
-  private editorElement?: HTMLElement;
+  private executedQuery?: string;
+  private queryResult?: QueryResponse;
 
-  oncreate({dom}: m.VnodeDOM<QueryPageMiniAttrs>) {
-    this.editorElement = toHTMLElement(assertExists(findRef(dom, 'editor')));
-    this.editorElement.style.height = '200px';
-  }
-
-  view({attrs}: m.Vnode<QueryPageMiniAttrs>): m.Children {
+  view({attrs}: m.CVnode<QueryPageMiniAttrs>) {
     return m(
       '.pf-query-page-mini',
-
       m(Editor, {
-        ref: 'editor',
         language: 'perfetto-sql',
-        onUpdate: attrs.onEditorContentUpdate,
-        onExecute: attrs.onExecute,
-      }),
-      m(ResizeHandle, {
-        onResize: (deltaPx: number) => {
-          this.editorHeight += deltaPx;
-          this.editorElement!.style.height = `${this.editorHeight}px`;
-        },
-        onResizeStart: () => {
-          this.editorHeight = this.editorElement!.clientHeight;
+        onExecute: async (query) => {
+          this.executedQuery = query;
+          const result = await runQueryForQueryTable(query, attrs.trace.engine);
+          this.queryResult = result;
         },
       }),
-      attrs.executedQuery === undefined
+      this.executedQuery === undefined
         ? null
         : m(QueryTable, {
             trace: attrs.trace,
-            query: attrs.executedQuery,
-            resp: attrs.queryResult,
+            query: this.executedQuery,
+            resp: this.queryResult,
             fillParent: false,
           }),
     );

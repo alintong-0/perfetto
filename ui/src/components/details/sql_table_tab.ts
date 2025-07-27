@@ -115,8 +115,10 @@ class LegacySqlTableTab implements Tab {
       },
       m(AddDebugTrackMenu, {
         trace: this.state.trace,
-        query: `SELECT ${debugTrackColumns.join(', ')} FROM (${selectStatement})`,
-        availableColumns: debugTrackColumns,
+        dataSource: {
+          sqlSource: `SELECT ${debugTrackColumns.join(', ')} FROM (${selectStatement})`,
+          columns: debugTrackColumns,
+        },
       }),
     );
     return [

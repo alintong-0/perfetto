@@ -1,114 +1,120 @@
 # Perfetto UI
 
-The [Perfetto UI](https://ui.perfetto.dev) enables you to view and analyze
-traces in the browser. It supports several different tracing formats, including
-the perfetto proto trace format and the legacy json trace format.
+[Perfetto UI](https://ui.perfetto.dev) enables you to view and analyze traces in
+the browser. It supports several different tracing formats, including the
+perfetto proto trace format and the legacy json trace format.
 
-## Loading a Trace
+## New Features
+What features have come to the UI recently? See below.
 
-Click one of the examples in the 'Example Traces' section of the taskbar to get
-going.
+### Tabs V2
 
-Drag and drop a trace from your file explorer, or click 'Open trace file' in the
-sidebar to open a local trace file.
+We've refreshed how the tabs in the details pane at the bottom of the
+timeline work.
 
-## Navigating the Timeline
+NOTE: Temporarily you can use the previous tab implementation via
+setting the [Tabs V2 feature flag](http://ui.perfetto.dev/#!/flags) to
+'Disabled'. Please file a bug with feedback on Tabs V2.
 
-Use the WASD cluster to zoom and pan around the timeline. W and S zoom in and
-out, and A and D pan left and right respectively.
+The update aimed to address a few major UX concerns with the existing
+implementation while also making tabs extensible via plugins.
 
-<video width="800" controls>
-  <source src="https://storage.googleapis.com/perfetto-misc/keyboard-nav.webm" type="video/webm">
-</video>
+UX concerns in TabsV1:
+- Tabs disappear and reappear when the user changes the selection causing surprise and confusion.
+- We try to guess the right tab to get focus and this guess is often incorrect.
+- 'Ephemeral tabs' (query results and SQL tables) work differently from
+  'permanent tabs ('Ftrace events' and 'Android Logs'). Ephemeral tabs can be closed while permanent tabs can not.
+- 'Current selection' tabs work differently to both 'ephemeral' and 'permanent' tabs and there can only be a single 'Current selection' tab
+  even when the current selection contains many different kinds of data.
+- Ephemeral tabs are not persisted into permalinks.
 
-Alternatively you can use Shit+Drag to pan using the mouse. Ctrl+MouseWheel
-zooms in and out.
+![Tabs V2 demo](https://storage.googleapis.com/perfetto-misc/feature-tabs-v2.gif)
 
-<video width="800" controls>
-  <source src="https://storage.googleapis.com/perfetto-misc/mouse-nav.webm" type="video/webm">
-</video>
+TabsV2 is extensible via the [plugin mechanism](/docs/contributing/ui-plugins).
+Plugins can add new permanent and ephemeral tabs as well as new selection panels.
 
-## Track Event Selections
+### Custom visualisation with Vega and Vega-lite
 
-Selecting entities on the tace is the primary way to dig into events of a trace
-and reveal more data about those events.
+The `Viz` page available in the sidebar after you load the trace allows
+for custom visualisation using [Vega](https://vega.github.io/vega/) or
+[Vega-lite](https://vega.github.io/vega-lite/docs/).
 
-Select a track event by clicking on it. Details about the selected event will
-appear in the 'Current Selection' tab in the tab drawer.
+Type a Vega specification into the bottom editor pane and the
+visualisation will update in real time in the top pane.
+You can put arbitrary `trace_processor` SQL queries where the URL would
+go in a normal Vega visualisation.
 
-<video width="800" controls>
-  <source src="https://storage.googleapis.com/perfetto-misc/select-event.webm" type="video/webm">
-</video>
+![Viz page](https://storage.googleapis.com/perfetto-misc/feature-viz-page.png)
 
-Use '.' and ',' to navigate between adjacent slices on the same track.
+Try the following visualisation with the Android example trace:
 
-<video width="800" controls>
-  <source src="https://storage.googleapis.com/perfetto-misc/next-prev-events.webm" type="video/webm">
-</video>
+```json
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "data": {"url": "select cpu, dur from sched where utid != 0"},
+  "mark": "bar",
+  "encoding": {
+    "x": {
+      "field": "cpu"
+    },
+    "y": {"aggregate": "sum", "field": "dur"}
+  }
+}
+```
 
-Press 'F' to center the selected entity in the viewport, and press 'F' again to
-fit that slice to the viewport. This can be useful for really short events that
-cannot otherwise be seen clearly at the current zoom level.
+### Command Palette
+Tired of remembering the location of buttons in the Perfetto UI?
+Commands to the rescue!
 
-<video width="800" controls>
-  <source src="https://storage.googleapis.com/perfetto-misc/focus-event.webm" type="video/webm">
-</video>
+![Command](https://storage.googleapis.com/perfetto-misc/feature-command-palette.gif)
 
-At any point, press 'escape' or click on some empty space in the timeline to
-clear the selection.
+Commands are:
+- Discoverable & Searchable
+- Keyboard driven
+- Plugin-able
+- Context sensitive
+- ...with more added every day
 
-## Area Selections
+Access the command palette via `Ctrl-Shift-P` or by typing `>` in the
+search bar.
 
-Click and drag over the timeline to make an area selection. An area selection
-consists of a start + end time and a list of tracks. Click+drag on the markers
-to move the start and end times. Check or uncheck the checkboxes in the track
-shells to modify the list of tracks in the selection.
+### Changing the time format and offset
 
-<video width="800" controls>
-  <source src="https://storage.googleapis.com/perfetto-misc/area-selection.webm" type="video/webm">
-</video>
+![Time](https://storage.googleapis.com/perfetto-misc/feature-time.gif)
 
-You can also convert a single selection into an area selection using the 'R'
-hotkey. This turns the currently selected track event in to an area selection
-using the bounds of the selected event.
+The displayed timestamp format can be changed globally, cycling between seconds, raw nanoseconds and a new "timecode" format.
+We also have a new `TO_TIMECODE()` function in Trace Processor to print timestamps in the timecode format.
 
-## Commands
+## UI Tips and Tricks
 
-Commands provide a quick way to run common tasks throughout the UI. Press
-'Ctrl+Shift+P' ('Cmd+Shift+P' on Mac) to open the command palette, or by
-entering '>' in the omnibox. The omnibox transforms into a command palette.
-Commands can be searched using fuzzy matching. Press up or down to highlight a
-command and Enter to run it.
+### Pivot Tables
 
-<video width="800" controls>
-  <source src="https://storage.googleapis.com/perfetto-misc/commands.webm" type="video/webm">
-</video>
+To use pivot tables in the Perfetto UI, you will need to enable the
+"Pivot tables" feature flag in the "Flags" tab under "Support" in the Sidebar.
+You can pop up a pivot table over the entire trace when clicking "p" on your
+keyboard. The "Edit" button opens a pop up window to add/remove and reorder
+columns and change the default sorting of aggregations.
 
-## Showing/hiding the tab drawer
+![Pivot table editor](/docs/images/pivot-tables/pivot-table-editor.png)
 
-Press 'Q' to toggle the tab drawer.
+Clicking on "Query" generates a table with the selected columns.
+Table cells with the expand icon can be expanded to show the next column values.
+The "name (stack)" column displays top level slices that can be expanded to show
+their descendants down to the last child.
 
-## Finding Tracks
+![Pivot table](/docs/images/pivot-tables/pivot-table.png)
 
-Press 'Ctrl+P' (or 'Cmd+Shift+P on Mac) to open the track finder and start
-typing to fuzzy find tracks.
+Area selection pops up a pre-filled pivot table restricted over the selected
+timestamps and track ids.
 
-<video width="800" controls>
-  <source src="https://storage.googleapis.com/perfetto-misc/finding-tracks.webm" type="video/webm">
-</video>
+![Pivot table area selection](/docs/images/pivot-tables/pivot-table-area-selection.png)
 
-## Pinning Tracks
+### Disabling metrics
 
-Press the 'Pin' icon in the track shell to pin a track to the top of the
-timeline. This operation moves the track to the top of the workspace. This can
-be handy if you want to keep important tracks in view while scrolling through
-the main timeline.
+Some metrics execute at trace load time to annotate the trace with
+additional tracks and events. You can stop these metrics from
+running by disabling them in the 'Flags' page:
 
-<video width="800" controls>
-  <source src="https://storage.googleapis.com/perfetto-misc/pinning-tracks.webm" type="video/webm">
-</video>
+![Disable metrics from running at trace load time](/docs/images/perfetto-ui-disable-metrics.png)
 
-## Hotkeys
 
-Hotkey bindings are displayed to the right of the commands in the command
-palette, or press the '?' hotkey to display all configured hotkeys.

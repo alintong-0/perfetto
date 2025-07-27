@@ -115,8 +115,14 @@ class MockProcessTracker : public ProcessTracker {
                base::StringView cmdline),
               (override));
 
-  MOCK_METHOD(void,
+  MOCK_METHOD(UniqueTid,
               UpdateThreadName,
+              (int64_t tid,
+               StringId thread_name_id,
+               ThreadNamePriority priority),
+              (override));
+  MOCK_METHOD(void,
+              UpdateThreadNameByUtid,
               (UniqueTid utid,
                StringId thread_name_id,
                ThreadNamePriority priority),
@@ -132,8 +138,7 @@ class MockProcessTracker : public ProcessTracker {
 class MockBoundInserter : public ArgsTracker::BoundInserter {
  public:
   MockBoundInserter()
-      : ArgsTracker::BoundInserter(&tracker_, nullptr, 0u, 0u),
-        tracker_(nullptr) {
+      : ArgsTracker::BoundInserter(&tracker_, nullptr, 0u), tracker_(nullptr) {
     ON_CALL(*this, AddArg(_, _, _, _)).WillByDefault(ReturnRef(*this));
   }
 
@@ -436,8 +441,8 @@ TEST_F(FuchsiaTraceParserTest, FxtWithProtos) {
   StringId unknown_cat = storage_->InternString("unknown(1)");
   ASSERT_NE(storage_, nullptr);
 
-  constexpr TrackId track{1u};
-  constexpr TrackId thread_time_track{0u};
+  constexpr TrackId track{0u};
+  constexpr TrackId thread_time_track{1u};
 
   InSequence in_sequence;  // Below slices should be sorted by timestamp.
   // Only the begin thread time can be imported into the counter table.

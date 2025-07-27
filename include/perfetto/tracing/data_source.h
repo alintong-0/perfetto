@@ -67,8 +67,8 @@ namespace perfetto {
 namespace internal {
 class TracingMuxerImpl;
 class TrackEventCategoryRegistry;
-template <const internal::TrackEventCategoryRegistry*>
-class TrackEvent;
+template <typename, const internal::TrackEventCategoryRegistry*>
+class TrackEventDataSource;
 }  // namespace internal
 
 namespace shlib {
@@ -362,12 +362,10 @@ class DataSource : public DataSourceBase {
           Helper::type().GetIncrementalState(tls_inst_, instance_index_));
     }
 
-    uint32_t instance_index() const { return instance_index_; }
-
    private:
     friend class DataSource;
-    template <const internal::TrackEventCategoryRegistry*>
-    friend class internal::TrackEvent;
+    template <typename, const internal::TrackEventCategoryRegistry*>
+    friend class internal::TrackEventDataSource;
     TraceContext(internal::DataSourceInstanceThreadLocalState* tls_inst,
                  uint32_t instance_index)
         : tls_inst_(tls_inst), instance_index_(instance_index) {}

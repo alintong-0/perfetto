@@ -17,24 +17,18 @@
 -- provide the proper Wattson markers slice if user inserts only one pair of
 -- Wattson markers, which is the pre-defined agreement.
 CREATE PERFETTO TABLE _wattson_markers_window AS
-WITH
-  markers AS (
-    SELECT
-      min(ts) FILTER(WHERE
-        name = 'wattson_start') AS start,
-      max(ts) FILTER(WHERE
-        name = 'wattson_stop') AS stop
-    FROM slice
-    WHERE
-      name IN ('wattson_start', 'wattson_stop')
-  )
 SELECT
-  start AS ts,
-  stop - start AS dur,
+  min(ts) FILTER(WHERE
+    name = 'wattson_start') AS ts,
+  max(ts) FILTER(WHERE
+    name = 'wattson_stop') - min(ts) FILTER(WHERE
+    name = 'wattson_start') AS dur,
   'Markers window' AS name
-FROM markers
+FROM slice
 WHERE
-  start IS NOT NULL;
+  name IN ('wattson_start', 'wattson_stop')
+HAVING
+  ts IS NOT NULL;
 
 -- Helper macro for using Perfetto table with interval intersect
 CREATE PERFETTO MACRO _ii_subquery(

@@ -17,7 +17,6 @@
 #ifndef SRC_PROTOVM_NODE_H_
 #define SRC_PROTOVM_NODE_H_
 
-#include <type_traits>
 #include <variant>
 
 #include "src/base/intrusive_tree.h"
@@ -34,10 +33,7 @@ namespace internal {
 struct MapNode {
   struct Traits {
     using KeyType = uint64_t;
-    static constexpr size_t NodeOffset() {
-      static_assert(std::is_standard_layout_v<MapNode>);
-      return offsetof(MapNode, node);
-    }
+    static constexpr size_t NodeOffset() { return offsetof(MapNode, node); }
     static const KeyType& GetKey(const MapNode& n) { return n.key; }
   };
 
@@ -47,7 +43,6 @@ struct MapNode {
   uint64_t key;
   OwnedPtr<Node> value;
 };
-
 }  // namespace internal
 
 using IntrusiveMap =

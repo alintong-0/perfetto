@@ -151,10 +151,8 @@ PERFETTO_CONFIG = struct(
         android_instrumentation_test = None,
     ),
 
-    # The default opts which we use to compile C/C++ code.
-    default_copts = [],
-    # The default opts which we use to compile C++ code.
-    default_cxxopts = [
+    # The default copts which we use to compile C++ code.
+    default_copts = [
         "-std=c++17",
-    ],
+    ]
 )

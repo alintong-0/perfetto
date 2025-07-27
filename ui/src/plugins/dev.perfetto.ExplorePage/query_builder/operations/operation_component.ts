@@ -13,85 +13,44 @@
 // limitations under the License.
 
 import m from 'mithril';
-import {ALL_FILTER_OPS, FilterAttrs, FilterOperation} from './filter';
+import {Filter, FilterAttrs, FilterOperation, FilterToProto} from './filter';
 import {
-  Aggregation,
+  GroupByAgg,
   GroupByAggregationAttrsToProto,
-  AggregationsOperatorAttrs,
-  AggregationsOperator,
-} from './aggregations';
-import {FilterDefinition} from '../../../../components/widgets/data_grid/common';
-import {Button, ButtonVariant} from '../../../../widgets/button';
+  GroupByAttrs,
+  GroupByOperation,
+} from './groupy_by';
 import protos from '../../../../protos';
-import {ColumnInfo} from '../column_info';
+import {ColumnControllerRow} from '../column_controller';
+import {Section} from '../../../../widgets/section';
 
 export interface OperatorAttrs {
   filter: FilterAttrs;
-  groupby: AggregationsOperatorAttrs;
+  groupby: GroupByAttrs;
 }
 
 export class Operator implements m.ClassComponent<OperatorAttrs> {
-  private showAggregations = false;
-
   view({attrs}: m.CVnode<OperatorAttrs>): m.Children {
-    return m('.pf-exp-query-operations', [
-      m(FilterOperation, attrs.filter),
-      this.showAggregations
-        ? m('.pf-exp-query-operations', m(AggregationsOperator, attrs.groupby))
-        : m(Button, {
-            label: 'Aggregate data',
-            onclick: () => {
-              this.showAggregations = true;
-            },
-            variant: ButtonVariant.Filled,
-          }),
-    ]);
+    return m(
+      '.explore-page__rowish',
+      m(Section, {title: 'Filters'}, m(FilterOperation, attrs.filter)),
+      m(Section, {title: 'Aggregation'}, m(GroupByOperation, attrs.groupby)),
+    );
   }
 }
 
 export function createFiltersProto(
-  filters: FilterDefinition[],
-  sourceCols: ColumnInfo[],
+  filters: Filter[],
 ): protos.PerfettoSqlStructuredQuery.Filter[] | undefined {
-  if (filters.length === 0) {
-    return undefined;
-  }
-
-  const protoFilters: protos.PerfettoSqlStructuredQuery.Filter[] = filters.map(
-    (f: FilterDefinition): protos.PerfettoSqlStructuredQuery.Filter => {
-      const result = new protos.PerfettoSqlStructuredQuery.Filter();
-      result.columnName = f.column;
-
-      const op = ALL_FILTER_OPS.find((o) => o.displayName === f.op);
-      if (op === undefined) {
-        // Should be handled by validation before this.
-        throw new Error(`Unknown filter operator: ${f.op}`);
-      }
-      result.op = op.proto;
-
-      if ('value' in f) {
-        const value = f.value;
-        const col = sourceCols.find((c) => c.name === f.column);
-        if (typeof value === 'string') {
-          result.stringRhs = [value];
-        } else if (typeof value === 'number' || typeof value === 'bigint') {
-          if (col && (col.type === 'long' || col.type === 'int')) {
-            result.int64Rhs = [Number(value)];
-          } else {
-            result.doubleRhs = [Number(value)];
-          }
-        }
-        // Not handling Uint8Array here. The original FilterToProto also didn't seem to.
-      }
-      return result;
-    },
-  );
-  return protoFilters;
+  const protos = filters
+    .filter((f) => validateFilter(f))
+    .map((f) => FilterToProto(f));
+  return protos.length !== 0 ? protos : undefined;
 }
 
 export function createGroupByProto(
-  groupByColumns: ColumnInfo[],
-  aggregations: Aggregation[],
+  groupByColumns: ColumnControllerRow[],
+  aggregations: GroupByAgg[],
 ): protos.PerfettoSqlStructuredQuery.GroupBy | undefined {
   if (!groupByColumns.find((c) => c.checked)) return;
 
@@ -100,18 +59,25 @@ export function createGroupByProto(
     .filter((c) => c.checked)
     .map((c) => c.column.name);
 
-  for (const agg of aggregations) {
-    agg.isValid = validateAggregation(agg);
-  }
   groupByProto.aggregates = aggregations
-    .filter((agg) => agg.isValid)
+    .filter((agg) => validateAggregation(agg))
     .map(GroupByAggregationAttrsToProto);
   return groupByProto;
 }
 
-// Both 'column' and 'aggregationOp' must be present for an aggregation to be considered valid.
-// This ensures that the aggregation operation is applied to a specific column.
-function validateAggregation(aggregation: Aggregation): boolean {
-  if (!aggregation.column || !aggregation.aggregationOp) return false;
+function validateAggregation(aggregation: GroupByAgg): boolean {
+  if (!aggregation.column) return false;
+  return true;
+}
+
+function validateFilter(filter: Filter): boolean {
+  if (!filter.columnName.checked) return false;
+  if (
+    filter.stringsRhs.length === 0 &&
+    filter.doubleRhs.length === 0 &&
+    filter.intRhs.length === 0
+  ) {
+    return false;
+  }
   return true;
 }

@@ -21,12 +21,12 @@
 
 namespace perfetto {
 
-class Tracefs;
+class FtraceProcfs;
 struct FtraceStats;
 struct FtraceCpuStats;
 
 bool DumpCpuStats(std::string text, FtraceCpuStats*);
-bool DumpAllCpuStats(Tracefs*, FtraceStats*);
+bool DumpAllCpuStats(FtraceProcfs*, FtraceStats*);
 
 }  // namespace perfetto
 

@@ -12,20 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {Area, AreaSelection} from '../../public/selection';
+import {
+  Area,
+  AreaSelection,
+  AreaSelectionAggregator,
+} from '../../public/selection';
 import {Engine} from '../../trace_processor/engine';
 import {exists} from '../../base/utils';
+import {ColumnDef, Sorting} from '../../public/aggregation';
 import {
   CPUSS_ESTIMATE_TRACK_KIND,
   GPUSS_ESTIMATE_TRACK_KIND,
 } from './track_kinds';
-import {Aggregator} from '../../components/aggregation_adapter';
-import {WattsonAggregationPanel} from './aggregation_panel';
-import {ColumnDef, Sorting} from '../../components/aggregation';
 
-export class WattsonEstimateSelectionAggregator implements Aggregator {
+export class WattsonEstimateSelectionAggregator
+  implements AreaSelectionAggregator
+{
   readonly id = 'wattson_plugin_estimate_aggregation';
-  readonly Panel = WattsonAggregationPanel;
 
   probe(area: AreaSelection) {
     const estimateTracks: string[] = [];
@@ -83,8 +86,8 @@ export class WattsonEstimateSelectionAggregator implements Aggregator {
       query += `
         SELECT
         '${estimateTrack}' as name,
-        ROUND(SUM(${estimateTrack}_mw * dur) / ${duration}, 3) as power_mw,
-        ROUND(SUM(${estimateTrack}_mw * dur) / 1000000000, 3) as energy_mws
+        ROUND(SUM(${estimateTrack}_mw * dur) / ${duration}, 3) as power,
+        ROUND(SUM(${estimateTrack}_mw * dur) / 1000000000, 3) as energy
         FROM wattson_plugin_windowed_subsystems_estimate
       `;
     });
@@ -97,16 +100,22 @@ export class WattsonEstimateSelectionAggregator implements Aggregator {
     return [
       {
         title: 'Name',
+        kind: 'STRING',
+        columnConstructor: Uint16Array,
         columnId: 'name',
       },
       {
         title: 'Power (estimated mW)',
-        columnId: 'power_mw',
+        kind: 'NUMBER',
+        columnConstructor: Float64Array,
+        columnId: 'power',
         sum: true,
       },
       {
         title: 'Energy (estimated mWs)',
-        columnId: 'energy_mws',
+        kind: 'NUMBER',
+        columnConstructor: Float64Array,
+        columnId: 'energy',
         sum: true,
       },
     ];

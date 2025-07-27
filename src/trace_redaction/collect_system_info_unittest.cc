@@ -90,13 +90,10 @@ TEST(BuildSyntheticProcessTest, CreatesThreadsPerCpu) {
   BuildSyntheticThreads build;
   ASSERT_OK(build.Build(&context));
 
-  const auto& synthetic_process = *context.synthetic_process;
+  ASSERT_NE(context.synthetic_process->tgid(), 0);
 
-  ASSERT_NE(synthetic_process.tgid(), 0);
-
-  // There should be one thread per CPU. Because we reserved CPU 7, it implies
-  // there are CPUs 0 to 7 (i.e. 8 CPUs).
-  ASSERT_EQ(synthetic_process.tids().size(), 8u);
+  // One main thread and 1 thread per CPU.
+  ASSERT_EQ(context.synthetic_process->tids().size(), 9u);
 }
 
 }  // namespace perfetto::trace_redaction

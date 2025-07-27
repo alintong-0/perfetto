@@ -14,7 +14,7 @@
 
 import m from 'mithril';
 import {Anchor} from '../../widgets/anchor';
-import {Button, ButtonBar, ButtonVariant} from '../../widgets/button';
+import {Button, ButtonVariant} from '../../widgets/button';
 import {DetailsShell} from '../../widgets/details_shell';
 import {GridLayout} from '../../widgets/grid_layout';
 import {Section} from '../../widgets/section';
@@ -40,7 +40,6 @@ import {goToSchedSlice} from '../../components/widgets/sched';
 import {TrackEventDetailsPanel} from '../../public/details_panel';
 import {Trace} from '../../public/trace';
 import {formatDuration} from '../../components/time_utils';
-import {Stack} from '../../widgets/stack';
 
 interface RelatedThreadStates {
   prev?: ThreadState;
@@ -297,8 +296,9 @@ export class ThreadStateDetailsPanel implements TrackEventDetailsPanel {
       );
     };
 
-    return m(Stack, [
-      m(Tree, [
+    return [
+      m(
+        Tree,
         this.relatedStates.prev &&
           m(TreeNode, {
             left: 'Previous state',
@@ -317,22 +317,20 @@ export class ThreadStateDetailsPanel implements TrackEventDetailsPanel {
           }),
         renderWaker(this.relatedStates),
         renderWakees(this.relatedStates),
-      ]),
+      ),
       this.trace.commands.hasCommand(CRITICAL_PATH_LITE_CMD) &&
-        m(ButtonBar, [
-          m(Button, {
-            label: 'Critical path lite',
-            intent: Intent.Primary,
-            variant: ButtonVariant.Filled,
-            onclick: () => {
-              this.trace.commands.runCommand(
-                CRITICAL_PATH_LITE_CMD,
-                this.threadState?.thread?.utid,
-              );
-            },
-          }),
-        ]),
-    ]);
+        m(Button, {
+          label: 'Critical path lite',
+          intent: Intent.Primary,
+          variant: ButtonVariant.Filled,
+          onclick: () => {
+            this.trace.commands.runCommand(
+              CRITICAL_PATH_LITE_CMD,
+              this.threadState?.thread?.utid,
+            );
+          },
+        }),
+    ];
   }
 
   isLoading() {

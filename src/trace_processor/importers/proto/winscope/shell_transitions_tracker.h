@@ -25,12 +25,23 @@
 #include "src/trace_processor/types/trace_processor_context.h"
 #include "src/trace_processor/util/winscope_proto_mapping.h"
 
-namespace perfetto::trace_processor::winscope {
+namespace perfetto {
+namespace trace_processor {
 
 // Tracks information in the transition table.
-class ShellTransitionsTracker {
+class ShellTransitionsTracker : public Destructible {
  public:
   explicit ShellTransitionsTracker(TraceProcessorContext*);
+  virtual ~ShellTransitionsTracker() override;
+
+  static ShellTransitionsTracker* GetOrCreate(TraceProcessorContext* context) {
+    if (!context->shell_transitions_tracker) {
+      context->shell_transitions_tracker.reset(
+          new ShellTransitionsTracker(context));
+    }
+    return static_cast<ShellTransitionsTracker*>(
+        context->shell_transitions_tracker.get());
+  }
 
   ArgsTracker::BoundInserter AddArgsTo(int32_t transition_id);
 
@@ -39,13 +50,11 @@ class ShellTransitionsTracker {
   void SetTransitionType(int32_t transition_id, int32_t transition_type);
   void SetSendTime(int32_t transition_id, int64_t timestamp_ns);
   void SetDispatchTime(int32_t transition_id, int64_t timestamp_ns);
-  void SetShellAbortTime(int32_t transition_id, int64_t timestamp_ns);
-  void SetFinishTime(int32_t transition_id, int64_t finish_time_ns);
+  void TrySetDurationFromFinishTime(int32_t transition_id,
+                                    int64_t finish_time_ns);
   void SetHandler(int32_t transition_id, int64_t handler);
   void SetFlags(int32_t transition_id, int32_t flags);
   void SetStatus(int32_t transition_id, StringPool::Id status);
-  void SetStartTransactionId(int32_t transition_id, uint64_t transaction_id);
-  void SetFinishTransactionId(int32_t transition_id, uint64_t transaction_id);
 
   void Flush();
 
@@ -53,6 +62,7 @@ class ShellTransitionsTracker {
   struct TransitionInfo {
     tables::WindowManagerShellTransitionsTable::Id row_id;
     ArgsTracker args_tracker;
+    std::optional<int64_t> finish_time_ns = std::nullopt;
   };
 
   TransitionInfo* GetOrInsertTransition(int32_t transition_id);
@@ -64,6 +74,7 @@ class ShellTransitionsTracker {
   std::unordered_map<int32_t, TransitionInfo> transitions_infos_;
 };
 
-}  // namespace perfetto::trace_processor::winscope
+}  // namespace trace_processor
+}  // namespace perfetto
 
 #endif  // SRC_TRACE_PROCESSOR_IMPORTERS_PROTO_WINSCOPE_SHELL_TRANSITIONS_TRACKER_H_

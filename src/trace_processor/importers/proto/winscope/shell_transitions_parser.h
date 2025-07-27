@@ -17,7 +17,6 @@
 #ifndef SRC_TRACE_PROCESSOR_IMPORTERS_PROTO_WINSCOPE_SHELL_TRANSITIONS_PARSER_H_
 #define SRC_TRACE_PROCESSOR_IMPORTERS_PROTO_WINSCOPE_SHELL_TRANSITIONS_PARSER_H_
 
-#include "src/trace_processor/importers/proto/winscope/winscope_context.h"
 #include "src/trace_processor/util/descriptors.h"
 #include "src/trace_processor/util/proto_to_args_parser.h"
 
@@ -29,12 +28,12 @@ class TraceProcessorContext;
 
 class ShellTransitionsParser {
  public:
-  explicit ShellTransitionsParser(winscope::WinscopeContext*);
+  explicit ShellTransitionsParser(TraceProcessorContext*);
   void ParseTransition(protozero::ConstBytes);
   void ParseHandlerMappings(protozero::ConstBytes);
 
  private:
-  winscope::WinscopeContext* context_;
+  TraceProcessorContext* const context_;
   util::ProtoToArgsParser args_parser_;
 };
 }  // namespace trace_processor

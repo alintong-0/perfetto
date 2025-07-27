@@ -26,7 +26,6 @@ function slice(start: number, duration: number, depth: number = 0): Slice {
     startNs,
     endNs,
     durNs,
-    count: 1,
     ts: startNs,
     dur: durNs,
     depth,

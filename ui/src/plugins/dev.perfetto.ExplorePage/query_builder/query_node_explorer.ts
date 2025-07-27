@@ -14,33 +14,23 @@
 
 import m from 'mithril';
 
-import {classNames} from '../../../base/classnames';
 import {AsyncLimiter} from '../../../base/async_limiter';
-import {ExplorePageHelp} from './explore_page_help';
-import {
-  analyzeNode,
-  isAQuery,
-  NodeType,
-  Query,
-  QueryNode,
-  queryToRun,
-} from '../query_node';
+import {NodeType, QueryNode} from '../query_node';
+import {Engine} from '../../../trace_processor/engine';
+import protos from '../../../protos';
 import {copyToClipboard} from '../../../base/clipboard';
 import {Button} from '../../../widgets/button';
 import {Icon} from '../../../widgets/icon';
 import {Icons} from '../../../base/semantic_icons';
-import {FilterDefinition} from '../../../components/widgets/data_grid/common';
 import {Operator} from './operations/operation_component';
 import {Trace} from '../../../public/trace';
 import {MenuItem, PopupMenu} from '../../../widgets/menu';
 import {TextInput} from '../../../widgets/text_input';
-import {SqlSourceNode} from './sources/sql_source';
 
 export interface QueryNodeExplorerAttrs {
-  readonly node?: QueryNode;
+  readonly node: QueryNode;
   readonly trace: Trace;
-  readonly onQueryAnalyzed: (query: Query | Error, reexecute?: boolean) => void;
-  readonly onExecute: () => void;
+  readonly onQueryAnalyzed: (query: Query) => void;
 }
 
 enum SelectedView {
@@ -57,16 +47,10 @@ export class QueryNodeExplorer
   private selectedView: number = 0;
 
   private prevSqString?: string;
+  private curSqString?: string;
 
   private currentQuery?: Query | Error;
-  private sqlForDisplay?: string;
-
   view({attrs}: m.CVnode<QueryNodeExplorerAttrs>) {
-    const {node} = attrs;
-    if (!node) {
-      return m(ExplorePageHelp);
-    }
-
     const renderModeMenu = (): m.Child => {
       return m(
         PopupMenu,
@@ -99,22 +83,17 @@ export class QueryNodeExplorer
     };
 
     const operators = (): m.Child => {
-      switch (node.type) {
+      switch (attrs.node.type) {
         case NodeType.kSimpleSlices:
         case NodeType.kStdlibTable:
           return m(Operator, {
             filter: {
-              sourceCols: node.state.sourceCols,
-              filters: node.state.filters,
-              onFiltersChanged: (
-                newFilters: ReadonlyArray<FilterDefinition>,
-              ) => {
-                node.state.filters = newFilters as FilterDefinition[];
-              },
+              sourceCols: attrs.node.state.sourceCols,
+              filters: attrs.node.state.filters,
             },
             groupby: {
-              groupByColumns: node.state.groupByColumns,
-              aggregations: node.state.aggregations,
+              groupByColumns: attrs.node.state.groupByColumns,
+              aggregations: attrs.node.state.aggregations,
             },
           });
         case NodeType.kSqlSource:
@@ -123,112 +102,53 @@ export class QueryNodeExplorer
     };
 
     const getAndRunQuery = (): void => {
-      if (node.type === NodeType.kSqlSource) {
-        const sql = (node as SqlSourceNode).state.sql ?? '';
-        const sq = node.getStructuredQuery();
-        const newSqString = sq ? JSON.stringify(sq.toJSON(), null, 2) : '';
-
-        const rawSqlHasChanged =
-          !this.currentQuery ||
-          !isAQuery(this.currentQuery) ||
-          sql !== this.currentQuery.sql;
-
-        if (newSqString !== this.prevSqString || rawSqlHasChanged) {
-          if (sq) {
-            this.tableAsyncLimiter.schedule(async () => {
-              const analyzedQuery = await analyzeNode(node, attrs.trace.engine);
-              if (isAQuery(analyzedQuery)) {
-                this.sqlForDisplay = queryToRun(analyzedQuery);
-              }
-              m.redraw();
-            });
-          }
-
-          this.currentQuery = {
-            sql,
-            textproto: newSqString,
-            modules: [],
-            preambles: [],
-          };
-          attrs.onQueryAnalyzed(this.currentQuery, false);
-          this.prevSqString = newSqString;
-
-          if (rawSqlHasChanged) {
-            attrs.onExecute();
-          }
-        }
-        return;
-      }
-
-      const sq = node.getStructuredQuery();
+      const sq = attrs.node.getStructuredQuery();
       if (sq === undefined) return;
 
-      const curSqString = JSON.stringify(sq.toJSON(), null, 2);
+      this.curSqString = JSON.stringify(sq.toJSON(), null, 2);
 
-      if (curSqString !== this.prevSqString) {
+      if (this.curSqString !== this.prevSqString) {
         this.tableAsyncLimiter.schedule(async () => {
-          this.currentQuery = await analyzeNode(node, attrs.trace.engine);
+          this.currentQuery = await analyzeNode(attrs.node, attrs.trace.engine);
           if (!isAQuery(this.currentQuery)) {
             return;
           }
           attrs.onQueryAnalyzed(this.currentQuery);
-          attrs.onExecute();
-          this.prevSqString = curSqString;
+          this.prevSqString = this.curSqString;
         });
       }
     };
 
     getAndRunQuery();
-    const sql: string =
-      this.sqlForDisplay ??
-      (isAQuery(this.currentQuery)
-        ? queryToRun(this.currentQuery)
-        : 'SQL not available.');
+    const sql: string = isAQuery(this.currentQuery)
+      ? queryToRun(this.currentQuery)
+      : '';
     const textproto: string = isAQuery(this.currentQuery)
       ? this.currentQuery.textproto
-      : this.currentQuery instanceof Error
-        ? this.currentQuery.message
-        : 'Proto not available.';
+      : '';
 
     return [
       m(
-        `.pf-node-explorer${
-          node.type === NodeType.kSqlSource
-            ? '.pf-node-explorer-sql-source'
-            : ''
-        }`,
+        '.pf-node-explorer',
         m(
           '.pf-node-explorer__title-row',
+          !attrs.node.validate() &&
+            m(Icon, {
+              icon: Icons.Warning,
+              filled: true,
+              title: 'Invalid node',
+            }),
           m(
             '.title',
-            (!node.validate() ||
-              node.state.queryError ||
-              node.state.responseError ||
-              node.state.dataError) &&
-              m(Icon, {
-                icon: Icons.Warning,
-                filled: true,
-                className: classNames(
-                  (!node.validate() || node.state.queryError) &&
-                    'pf-node-explorer__warning-icon--error',
-                  node.state.responseError &&
-                    'pf-node-explorer__warning-icon--warning',
-                ),
-                title:
-                  `Invalid node: \n` +
-                  (node.state.queryError?.message ?? '') +
-                  (node.state.responseError?.message ?? '') +
-                  (node.state.dataError?.message ?? ''),
-              }),
             m(TextInput, {
-              placeholder: node.getTitle(),
+              placeholder: attrs.node.getTitle(),
               oninput: (e: KeyboardEvent) => {
                 if (!e.target) return;
-                node.state.customTitle = (
+                attrs.node.state.customTitle = (
                   e.target as HTMLInputElement
                 ).value.trim();
-                if (node.state.customTitle === '') {
-                  node.state.customTitle = undefined;
+                if (attrs.node.state.customTitle === '') {
+                  attrs.node.state.customTitle = undefined;
                 }
               },
             }),
@@ -238,36 +158,108 @@ export class QueryNodeExplorer
         ),
         m(
           'article',
-          this.selectedView === SelectedView.kModify && [
-            node.nodeSpecificModify(),
-            operators(),
-          ],
+          attrs.node.coreModify(),
           this.selectedView === SelectedView.kSql &&
-            (isAQuery(this.currentQuery)
-              ? m(
-                  '.code-snippet',
-                  m(Button, {
-                    title: 'Copy to clipboard',
-                    onclick: () => copyToClipboard(sql),
-                    icon: Icons.Copy,
-                  }),
-                  m('code', sql),
-                )
-              : m('div', sql)),
+            m(
+              '.code-snippet',
+              m(Button, {
+                title: 'Copy to clipboard',
+                onclick: () => copyToClipboard(sql),
+                icon: Icons.Copy,
+              }),
+              m('code', sql),
+            ),
+          this.selectedView === SelectedView.kModify && operators(),
           this.selectedView === SelectedView.kProto &&
-            (isAQuery(this.currentQuery)
-              ? m(
-                  '.code-snippet',
-                  m(Button, {
-                    title: 'Copy to clipboard',
-                    onclick: () => copyToClipboard(textproto),
-                    icon: Icons.Copy,
-                  }),
-                  m('code', textproto),
-                )
-              : m('div', textproto)),
+            m(
+              '.code-snippet',
+              m(Button, {
+                title: 'Copy to clipboard',
+                onclick: () => copyToClipboard(textproto),
+                icon: Icons.Copy,
+              }),
+              m('code', textproto),
+            ),
         ),
       ),
     ];
   }
+}
+
+function getStructuredQueries(
+  finalNode: QueryNode,
+): protos.PerfettoSqlStructuredQuery[] | undefined {
+  if (finalNode.finalCols === undefined) {
+    return;
+  }
+  const revStructuredQueries: protos.PerfettoSqlStructuredQuery[] = [];
+  let curNode: QueryNode | undefined = finalNode;
+  while (curNode) {
+    const curSq = curNode.getStructuredQuery();
+    if (curSq === undefined) {
+      return;
+    }
+    revStructuredQueries.push(curSq);
+    if (curNode.prevNode && !curNode.prevNode.validate()) {
+      return;
+    }
+    curNode = curNode.prevNode;
+  }
+  return revStructuredQueries.reverse();
+}
+
+export interface Query {
+  sql: string;
+  textproto: string;
+  modules: string[];
+  preambles: string[];
+}
+
+export function queryToRun(sql?: Query): string {
+  if (sql === undefined) return 'N/A';
+  const includes = sql.modules.map((c) => `INCLUDE PERFETTO MODULE ${c};\n`);
+  return includes + sql.sql;
+}
+
+export async function analyzeNode(
+  node: QueryNode,
+  engine: Engine,
+): Promise<Query | undefined | Error> {
+  const structuredQueries = getStructuredQueries(node);
+  if (structuredQueries === undefined) return;
+
+  const res = await engine.analyzeStructuredQuery(structuredQueries);
+  if (res.error) return Error(res.error);
+  if (res.results.length === 0) return Error('No structured query results');
+  if (res.results.length !== structuredQueries.length) {
+    return Error(
+      `Wrong structured query results. Asked for ${structuredQueries.length}, received ${res.results.length}`,
+    );
+  }
+
+  const lastRes = res.results[res.results.length - 1];
+  if (lastRes.sql === null || lastRes.sql === undefined) {
+    return;
+  }
+  if (!lastRes.textproto) {
+    return Error('No textproto in structured query results');
+  }
+
+  const sql: Query = {
+    sql: lastRes.sql,
+    textproto: lastRes.textproto ?? '',
+    modules: lastRes.modules ?? [],
+    preambles: lastRes.preambles ?? [],
+  };
+  return sql;
+}
+
+export function isAQuery(
+  maybeQuery: Query | undefined | Error,
+): maybeQuery is Query {
+  return (
+    maybeQuery !== undefined &&
+    !(maybeQuery instanceof Error) &&
+    maybeQuery.sql !== undefined
+  );
 }

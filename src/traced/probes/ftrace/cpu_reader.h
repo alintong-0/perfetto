@@ -42,6 +42,7 @@ namespace perfetto {
 class FtraceDataSource;
 class LazyKernelSymbolizer;
 class ProtoTranslationTable;
+struct FtraceClockSnapshot;
 struct FtraceDataSourceConfig;
 
 namespace protos {
@@ -106,18 +107,6 @@ class CpuReader {
     std::unique_ptr<CompactSchedBuffer> compact_sched_;
   };
 
-  // Stores the a snapshot of the timestamps from ftrace's trace clock
-  // and CLOCK_BOOTTIME.
-  //
-  // Relevant when not using the "boot" clock for timestamping events (e.g.
-  // on Android O- and 3.x Linux kernels). Trace processor can use this data to
-  // do best-effort clock syncing with non-ftrace parts of the trace.
-  struct FtraceClockSnapshot {
-    protos::pbzero::FtraceClock ftrace_clock{};
-    int64_t ftrace_clock_ts = 0;  // time according to ftrace_clock
-    int64_t boot_clock_ts = 0;    // time according to CLOCK_BOOTTIME
-  };
-
   // Facilitates lazy proto writing - not every event in the kernel ring buffer
   // is serialised in the trace, so this class allows for trace packets to be
   // written only if there's at least one relevant event in the ring buffer
@@ -128,7 +117,8 @@ class CpuReader {
             FtraceMetadata* metadata,
             LazyKernelSymbolizer* symbolizer,
             size_t cpu,
-            const std::optional<FtraceClockSnapshot>& clock_snapshot,
+            const FtraceClockSnapshot* ftrace_clock_snapshot,
+            protos::pbzero::FtraceClock ftrace_clock,
             CompactSchedBuffer* compact_sched_buf,
             bool compact_sched_enabled,
             uint64_t previous_bundle_end_ts,
@@ -138,7 +128,8 @@ class CpuReader {
           metadata_(metadata),
           symbolizer_(symbolizer),
           cpu_(cpu),
-          clock_snapshot_(clock_snapshot),
+          ftrace_clock_snapshot_(ftrace_clock_snapshot),
+          ftrace_clock_(ftrace_clock),
           compact_sched_enabled_(compact_sched_enabled),
           compact_sched_buf_(compact_sched_buf),
           initial_previous_bundle_end_ts_(previous_bundle_end_ts),
@@ -181,7 +172,8 @@ class CpuReader {
     FtraceMetadata* const metadata_;          // Never nullptr.
     LazyKernelSymbolizer* const symbolizer_;  // Can be nullptr.
     const size_t cpu_;
-    std::optional<FtraceClockSnapshot> clock_snapshot_;
+    const FtraceClockSnapshot* const ftrace_clock_snapshot_;
+    protos::pbzero::FtraceClock const ftrace_clock_;
     const bool compact_sched_enabled_;
     CompactSchedBuffer* const compact_sched_buf_;
     uint64_t initial_previous_bundle_end_ts_;
@@ -203,7 +195,9 @@ class CpuReader {
   CpuReader(size_t cpu,
             base::ScopedFile trace_fd,
             const ProtoTranslationTable* table,
-            LazyKernelSymbolizer* symbolizer);
+            LazyKernelSymbolizer* symbolizer,
+            protos::pbzero::FtraceClock ftrace_clock,
+            const FtraceClockSnapshot* ftrace_clock_snapshot);
   ~CpuReader();
 
   // move-only
@@ -216,8 +210,7 @@ class CpuReader {
   // up to the writer, or hit |max_pages|. Returns number of pages read.
   size_t ReadCycle(ParsingBuffers* parsing_bufs,
                    size_t max_pages,
-                   const std::set<FtraceDataSource*>& started_data_sources,
-                   const std::optional<FtraceClockSnapshot>& clock_snapshot);
+                   const std::set<FtraceDataSource*>& started_data_sources);
 
   // Niche version of ReadCycle for FrozenFtraceDataSource, assumes a stopped
   // tracefs instance. Don't add new callers.
@@ -423,7 +416,8 @@ class CpuReader {
       CompactSchedBuffer* compact_sched_buf,
       const ProtoTranslationTable* table,
       LazyKernelSymbolizer* symbolizer,
-      const std::optional<FtraceClockSnapshot>& clock_snapshot);
+      const FtraceClockSnapshot* ftrace_clock_snapshot,
+      protos::pbzero::FtraceClock ftrace_clock);
 
   // For FtraceController, which manages poll callbacks on per-cpu buffer fds.
   int RawBufferFd() const { return trace_fd_.get(); }
@@ -438,13 +432,14 @@ class CpuReader {
       size_t max_pages,
       bool first_batch_in_cycle,
       CompactSchedBuffer* compact_sched_buf,
-      const std::set<FtraceDataSource*>& started_data_sources,
-      const std::optional<FtraceClockSnapshot>& clock_snapshot);
+      const std::set<FtraceDataSource*>& started_data_sources);
 
   size_t cpu_;
   const ProtoTranslationTable* table_;
   LazyKernelSymbolizer* symbolizer_;
   base::ScopedFile trace_fd_;
+  protos::pbzero::FtraceClock ftrace_clock_{};
+  const FtraceClockSnapshot* ftrace_clock_snapshot_;
 };
 
 }  // namespace perfetto

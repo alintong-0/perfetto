@@ -100,7 +100,7 @@ class BlockingCallMetricHandler implements MetricHandler {
       },
       columns: {ts: 'ts', dur: 'dur', name: 'name'},
       argColumns: ['name', 'ts', 'dur'],
-      title: trackName,
+      trackName,
     };
   }
 }

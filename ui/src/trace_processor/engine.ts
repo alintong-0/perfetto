@@ -146,6 +146,7 @@ export abstract class EngineBase implements Engine, Disposable {
   private pendingRegisterSqlPackage?: Deferred<void>;
   private pendingAnalyzeStructuredQueries?: Deferred<protos.AnalyzeStructuredQueryResult>;
   private pendingTraceSummary?: Deferred<protos.TraceSummaryResult>;
+  private _isMetatracingEnabled = false;
   private _numRequestsPending = 0;
   private _failed: string | undefined = undefined;
   private _queryLog: Array<QueryLog> = [];
@@ -320,10 +321,6 @@ export abstract class EngineBase implements Engine, Disposable {
         const x = assertExists(this.pendingAnalyzeStructuredQueries);
         x.resolve(analyzeRes);
         this.pendingAnalyzeStructuredQueries = undefined;
-        break;
-      case TPM.TPM_ENABLE_METATRACE:
-        // We don't have any pending promises for this request so just
-        // return.
         break;
       default:
         console.log(
@@ -564,6 +561,10 @@ export abstract class EngineBase implements Engine, Disposable {
     }
   }
 
+  isMetatracingEnabled(): boolean {
+    return this._isMetatracingEnabled;
+  }
+
   enableMetatrace(categories?: protos.MetatraceCategories) {
     const rpc = protos.TraceProcessorRpc.create();
     rpc.request = TPM.TPM_ENABLE_METATRACE;
@@ -574,6 +575,7 @@ export abstract class EngineBase implements Engine, Disposable {
       rpc.enableMetatraceArgs = new protos.EnableMetatraceArgs();
       rpc.enableMetatraceArgs.categories = categories;
     }
+    this._isMetatracingEnabled = true;
     this.rpcSendRequest(rpc);
   }
 
@@ -587,6 +589,7 @@ export abstract class EngineBase implements Engine, Disposable {
 
     const rpc = protos.TraceProcessorRpc.create();
     rpc.request = TPM.TPM_DISABLE_AND_READ_METATRACE;
+    this._isMetatracingEnabled = false;
     this.pendingReadMetatrace = result;
     this.rpcSendRequest(rpc);
     return result;

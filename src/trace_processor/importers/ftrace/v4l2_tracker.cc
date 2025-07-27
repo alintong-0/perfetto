@@ -16,6 +16,7 @@
 
 #include <memory>
 
+#include "perfetto/ext/base/hash.h"
 #include "perfetto/ext/base/string_utils.h"
 
 #include "src/trace_processor/importers/common/args_tracker.h"
@@ -27,6 +28,8 @@
 
 #include "protos/perfetto/trace/ftrace/ftrace_event.pbzero.h"
 #include "protos/perfetto/trace/ftrace/v4l2.pbzero.h"
+
+#include "v4l2_tracker.h"
 
 namespace perfetto {
 namespace trace_processor {
@@ -88,8 +91,8 @@ void V4l2Tracker::ParseV4l2Event(uint64_t fld_id,
       std::optional<SliceId> slice_id =
           AddSlice(buf_name_id, timestamp, pid, evt);
 
-      uint64_t hash = base::FnvHasher::Combine(evt.device_minor, evt.sequence,
-                                               *evt.type, *evt.index);
+      uint64_t hash = base::Hasher::Combine(evt.device_minor, evt.sequence,
+                                            *evt.type, *evt.index);
 
       QueuedBuffer queued_buffer;
       queued_buffer.queue_slice_id = slice_id;
@@ -129,8 +132,8 @@ void V4l2Tracker::ParseV4l2Event(uint64_t fld_id,
       std::optional<SliceId> slice_id =
           AddSlice(buf_name_id, timestamp, pid, evt);
 
-      uint64_t hash = base::FnvHasher::Combine(evt.device_minor, evt.sequence,
-                                               *evt.type, *evt.index);
+      uint64_t hash = base::Hasher::Combine(evt.device_minor, evt.sequence,
+                                            *evt.type, *evt.index);
 
       const QueuedBuffer* queued_buffer = queued_buffers_.Find(hash);
       if (queued_buffer) {

@@ -20,10 +20,10 @@
 
 namespace perfetto::trace_processor {
 
-base::Status LegacySqlFunction::VerifyPostConditions(Context*) {
+base::Status SqlFunction::VerifyPostConditions(Context*) {
   return base::OkStatus();
 }
 
-void LegacySqlFunction::Cleanup(Context*) {}
+void SqlFunction::Cleanup(Context*) {}
 
 }  // namespace perfetto::trace_processor

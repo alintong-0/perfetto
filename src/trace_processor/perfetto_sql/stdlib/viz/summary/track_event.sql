@@ -23,8 +23,7 @@ WITH
       t.name,
       t.parent_id,
       extract_arg(t.source_arg_set_id, 'child_ordering') AS ordering,
-      extract_arg(t.source_arg_set_id, 'sibling_order_rank') AS rank,
-      extract_arg(t.source_arg_set_id, 'description') AS description
+      extract_arg(t.source_arg_set_id, 'sibling_order_rank') AS rank
     FROM track AS t
     WHERE
       t.type GLOB '*_track_event'
@@ -34,8 +33,7 @@ SELECT
   t.name,
   t.parent_id,
   p.ordering AS parent_ordering,
-  coalesce(t.rank, 0) AS rank,
-  t.description
+  coalesce(t.rank, 0) AS rank
 FROM extracted AS t
 LEFT JOIN extracted AS p
   ON t.parent_id = p.id;
@@ -116,7 +114,6 @@ SELECT
   track.parent_id,
   track.type GLOB '*counter*' AS is_counter,
   track.name,
-  min(extract_arg(track.source_arg_set_id, 'description')) AS description,
   min(counter_track.unit) AS unit,
   min(extract_arg(track.source_arg_set_id, 'builtin_counter_type')) AS builtin_counter_type,
   max(m.id IS NOT NULL) AS has_data,
@@ -133,8 +130,12 @@ LEFT JOIN _track_event_has_children AS c
 LEFT JOIN _min_ts_per_track AS m
   USING (id)
 GROUP BY
-  track.track_group_id,
-  coalesce(track.track_group_id, track.id)
+  -- Merge by parent id if it exists or, if not, then by upid/utid scope.
+  coalesce('Tp' || track.parent_id, 'Pr' || upid, 'Th' || utid),
+  is_counter,
+  track.name,
+  -- Don't merge tracks by name which have children or are counters.
+  iif(NOT c.id IS NULL OR is_counter, track.id, NULL)
 ORDER BY
   track.parent_id,
   unioned.order_id;

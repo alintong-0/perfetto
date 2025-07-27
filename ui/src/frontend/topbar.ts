@@ -13,11 +13,25 @@
 // limitations under the License.
 
 import m from 'mithril';
+import {classNames} from '../base/classnames';
+import {taskTracker} from './task_tracker';
 import {Popup, PopupPosition} from '../widgets/popup';
 import {assertFalse} from '../base/logging';
 import {OmniboxMode} from '../core/omnibox_manager';
 import {AppImpl} from '../core/app_impl';
 import {TraceImpl, TraceImplAttrs} from '../core/trace_impl';
+
+class Progress implements m.ClassComponent<TraceImplAttrs> {
+  view({attrs}: m.CVnode<TraceImplAttrs>): m.Children {
+    const engine = attrs.trace.engine;
+    const isLoading =
+      AppImpl.instance.isLoadingTrace ||
+      engine.numRequestsPending > 0 ||
+      taskTracker.hasPendingTasks();
+    const classes = classNames(isLoading && 'progress-anim');
+    return m('.progress', {class: classes});
+  }
+}
 
 class TraceErrorIcon implements m.ClassComponent<TraceImplAttrs> {
   private tracePopupErrorDismissed = false;
@@ -71,14 +85,15 @@ export interface TopbarAttrs {
 
 export class Topbar implements m.ClassComponent<TopbarAttrs> {
   view({attrs}: m.Vnode<TopbarAttrs>) {
-    const {omnibox, trace} = attrs;
+    const {omnibox} = attrs;
     return m(
       '.topbar',
       {
         class: AppImpl.instance.sidebar.visible ? '' : 'hide-sidebar',
       },
       omnibox,
-      trace && m(TraceErrorIcon, {trace}),
+      attrs.trace && m(Progress, {trace: attrs.trace}),
+      attrs.trace && m(TraceErrorIcon, {trace: attrs.trace}),
     );
   }
 }

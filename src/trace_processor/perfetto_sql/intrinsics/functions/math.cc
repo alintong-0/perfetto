@@ -28,7 +28,7 @@ namespace perfetto::trace_processor {
 
 namespace {
 
-struct Ln : public LegacySqlFunction {
+struct Ln : public SqlFunction {
   static base::Status Run(Context*,
                           size_t argc,
                           sqlite3_value** argv,
@@ -54,7 +54,7 @@ struct Ln : public LegacySqlFunction {
   }
 };
 
-struct Exp : public LegacySqlFunction {
+struct Exp : public SqlFunction {
   static base::Status Run(Context*,
                           size_t argc,
                           sqlite3_value** argv,
@@ -76,7 +76,7 @@ struct Exp : public LegacySqlFunction {
   }
 };
 
-struct Sqrt : public LegacySqlFunction {
+struct Sqrt : public SqlFunction {
   static base::Status Run(Context*,
                           size_t argc,
                           sqlite3_value** argv,

@@ -85,6 +85,7 @@ source_set("etm_impl") {
     ":public_hdr",
     "../../../../gn:default_deps",
     "../../../../include/perfetto/base:base",
+    "../../db/column",
     "../../storage",
     "../../tables:tables_python",
     "../../types",

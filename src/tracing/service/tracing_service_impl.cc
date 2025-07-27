@@ -65,7 +65,6 @@
 #include "perfetto/ext/tracing/core/client_identity.h"
 #include "perfetto/ext/tracing/core/consumer.h"
 #include "perfetto/ext/tracing/core/observable_events.h"
-#include "perfetto/ext/tracing/core/priority_boost_config.h"
 #include "perfetto/ext/tracing/core/producer.h"
 #include "perfetto/ext/tracing/core/shared_memory.h"
 #include "perfetto/ext/tracing/core/shared_memory_abi.h"
@@ -935,26 +934,6 @@ base::Status TracingServiceImpl::EnableTracing(ConsumerEndpointImpl* consumer,
     }
   }
 
-  std::optional<base::ScopedSchedBoost> priority_boost;
-  if (cfg.has_priority_boost()) {
-    auto sched_policy = CreateSchedPolicyFromConfig(cfg.priority_boost());
-    if (!sched_policy.ok()) {
-      MaybeLogUploadEvent(
-          cfg, uuid,
-          PerfettoStatsdAtom::kTracedEnablePriorityBoostInvalidConfig);
-      return PERFETTO_SVC_ERR("Invalid priority boost config: %s",
-                              sched_policy.status().c_message());
-    }
-    auto boost = base::ScopedSchedBoost::Boost(sched_policy.value());
-    if (!boost.ok()) {
-      MaybeLogUploadEvent(
-          cfg, uuid, PerfettoStatsdAtom::kTracedEnablePriorityBoostOtherError);
-      return PERFETTO_SVC_ERR("Failed to boost priority: %s",
-                              boost.status().c_message());
-    }
-    priority_boost = std::move(*boost);
-  }
-
   const TracingSessionID tsid = ++last_tracing_session_id_;
   TracingSession* tracing_session =
       &tracing_sessions_
@@ -967,9 +946,6 @@ base::Status TracingServiceImpl::EnableTracing(ConsumerEndpointImpl* consumer,
 
   if (trace_filter)
     tracing_session->trace_filter = std::move(trace_filter);
-
-  if (priority_boost)
-    tracing_session->priority_boost = std::move(priority_boost);
 
   if (cfg.write_into_file()) {
     if (!fd ^ !cfg.output_path().empty()) {
@@ -1691,7 +1667,7 @@ void TracingServiceImpl::ActivateTriggers(
     android_stats::MaybeLogTriggerEvent(PerfettoTriggerAtom::kTracedTrigger,
                                         trigger_name);
 
-    base::FnvHasher hash;
+    base::Hasher hash;
     hash.Update(trigger_name.c_str(), trigger_name.size());
     std::string triggered_session_name;
     base::Uuid triggered_session_uuid;

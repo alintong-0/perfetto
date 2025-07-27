@@ -57,11 +57,6 @@
 
   .widget-container {
     display: flex;
-
-    // Put the widget in the center of the container
-    align-items: center;
-    justify-content: center;
-
     min-width: 300px;
     max-width: 600px;
     min-height: 250px;
@@ -71,7 +66,11 @@
     border: dashed 1px gray;
     margin: 10px 0 10px 0;
     padding: 16px;
-    overflow: hidden;
+
+    & > * {
+      margin: auto;
+      vertical-align: middle;
+    }
   }
 
   .widget-container-wide {

@@ -85,20 +85,6 @@ export class TimeAxisPanel {
           ctx.fillText(originDate, 6, 10);
         }
         break;
-      case TimestampFormat.CustomTimezone:
-        {
-          const originAsDate = Time.toDate(
-            timeAxisOrigin,
-            this.trace.traceInfo.unixOffset,
-          );
-          const tzOffsetMins = this.trace.timeline.customTimezoneOffset;
-          const originDate = formatDate(originAsDate, {
-            tzOffsetMins,
-            printTime: false,
-          });
-          ctx.fillText(originDate, 6, 10);
-        }
-        break;
       case TimestampFormat.TraceTz:
         {
           const originAsDate = Time.toDate(
@@ -158,7 +144,6 @@ export class TimeAxisPanel {
     const fmt = this.trace.timeline.timestampFormat;
     switch (fmt) {
       case TimestampFormat.UTC:
-      case TimestampFormat.CustomTimezone:
       case TimestampFormat.TraceTz:
       case TimestampFormat.Timecode:
         return renderTimecode(ctx, time, x, y, minWidth);

@@ -856,8 +856,9 @@ void DoParse(const ExamplePage& test_case,
   base::FlatHashMap<uint32_t, std::vector<uint8_t>> generic_pb_descriptors;
   CpuReader::Bundler bundler(
       &writer, &metadata, /*symbolizer=*/nullptr, /*cpu=*/0,
-      /*clock_snapshot=*/std::nullopt, compact_sched_buf.get(),
-      /*compact_sched_enabled=*/false, /*previous_bundle_end_ts=*/0,
+      /*ftrace_clock_snapshot=*/nullptr,
+      protos::pbzero::FTRACE_CLOCK_UNSPECIFIED, compact_sched_buf.get(),
+      /*compact_sched_enabled=*/false, /*last_read_event_ts=*/0,
       &generic_pb_descriptors);
 
   ProtoTranslationTable* table = GetTable(test_case.name);
@@ -980,7 +981,8 @@ void DoProcessPages(const ExamplePage& test_case,
         &writer, &metadata, /*cpu=*/0, &ds_config, &parse_errors,
         &last_read_event_ts, repeated_pages.get(), page_repetition,
         compact_sched_buf.get(), table,
-        /*symbolizer=*/nullptr, /*clock_snapshot=*/std::nullopt);
+        /*symbolizer=*/nullptr, /*ftrace_clock_snapshot=*/nullptr,
+        protos::pbzero::FTRACE_CLOCK_UNSPECIFIED);
 
     metadata.Clear();
   }

@@ -117,9 +117,8 @@ export interface Track {
   // Describes how to render the track.
   readonly renderer: TrackRenderer;
 
-  // Optional: A human readable description of the track. This can be a simple
-  // string or a render function that returns Mithril vnodes.
-  readonly description?: string | (() => m.Children);
+  // Optional: A human readable description of the track.
+  readonly description?: string;
 
   // Optional: Human readable subtitle. Sometimes displayed if there is room.
   readonly subtitle?: string;
@@ -210,7 +209,7 @@ export interface TrackRenderer {
    * track uses.
    */
   getSliceVerticalBounds?(depth: number): VerticalBounds | undefined;
-  getHeight?(): number;
+  getHeight(): number;
   getTrackShellButtons?(): m.Children;
   onMouseMove?(event: TrackMouseEvent): void;
   onMouseClick?(event: TrackMouseEvent): boolean;
@@ -293,7 +292,6 @@ export interface Slice {
   readonly endNs: time;
   readonly durNs: duration;
   readonly ts: time;
-  readonly count: number;
   readonly dur: duration;
   readonly depth: number;
   readonly flags: number;

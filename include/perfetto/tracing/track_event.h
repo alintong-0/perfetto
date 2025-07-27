@@ -192,7 +192,9 @@ constexpr bool IsDynamicCategory(const ::perfetto::DynamicCategory&) {
   } /* namespace PERFETTO_TRACK_EVENT_NAMESPACE  */                        \
   using PERFETTO_TRACK_EVENT_NAMESPACE::TrackEvent;                        \
   } /* namespace ns */                                                     \
-  PERFETTO_INTERNAL_SWALLOW_SEMICOLON()
+  PERFETTO_DECLARE_DATA_SOURCE_STATIC_MEMBERS_WITH_ATTRS(                  \
+      attrs, ns::PERFETTO_TRACK_EVENT_NAMESPACE::TrackEvent,               \
+      ::perfetto::internal::TrackEventDataSourceTraits)
 
 // Register the set of available categories by passing a list of categories to
 // this macro: perfetto::Category("cat1"), perfetto::Category("cat2"), ...
@@ -238,7 +240,9 @@ constexpr bool IsDynamicCategory(const ::perfetto::DynamicCategory&) {
   PERFETTO_INTERNAL_DEFINE_TRACK_EVENT_DATA_SOURCE()                           \
   } /* namespace PERFETTO_TRACK_EVENT_NAMESPACE */                             \
   } /* namespace ns */                                                         \
-  PERFETTO_INTERNAL_SWALLOW_SEMICOLON()
+  PERFETTO_DEFINE_DATA_SOURCE_STATIC_MEMBERS_WITH_ATTRS(                       \
+      attrs, ns::PERFETTO_TRACK_EVENT_NAMESPACE::TrackEvent,                   \
+      ::perfetto::internal::TrackEventDataSourceTraits)
 
 // Allocate storage for each category by using this macro once per track event
 // namespace.

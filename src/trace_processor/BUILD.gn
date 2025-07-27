@@ -173,6 +173,7 @@ if (enable_perfetto_trace_processor_sqlite) {
       "../base:clock_snapshots",
       "../protozero",
       "dataframe",
+      "db",
       "importers/android_bugreport",
       "importers/archive",
       "importers/art_hprof",
@@ -266,9 +267,6 @@ if (enable_perfetto_trace_processor_sqlite) {
         "../../protos/perfetto/trace_summary:descriptor",
         "../../protos/third_party/pprof:descriptor",
       ]
-      if (enable_perfetto_llvm_symbolizer) {
-        data_deps += [ "../profiling/symbolizer:llvm_symbolizer_wrapper" ]
-      }
     }
   }
 
@@ -329,6 +327,8 @@ perfetto_unittest_source_set("unittests") {
     "containers:unittests",
     "dataframe:unittests",
     "dataframe/impl:unittests",
+    "db:unittests",
+    "db/column:unittests",
     "importers/android_bugreport:unittests",
     "importers/common:unittests",
     "importers/ftrace:unittests",

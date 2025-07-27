@@ -46,7 +46,6 @@ import {Trace} from '../../public/trace';
 import {Anchor} from '../../widgets/anchor';
 import {showModal} from '../../widgets/modal';
 import {copyToClipboard} from '../../base/clipboard';
-import {Popup} from '../../widgets/popup';
 
 const TRACK_HEIGHT_MIN_PX = 18;
 const TRACK_HEIGHT_DEFAULT_PX = 30;
@@ -59,7 +58,7 @@ function getTrackHeight(node: TrackNode, track?: TrackRenderer) {
   // compact to save space.
   if (node.isSummary && node.expanded) return TRACK_HEIGHT_DEFAULT_PX;
 
-  const trackHeight = track?.getHeight?.();
+  const trackHeight = track?.getHeight();
   if (trackHeight === undefined) return TRACK_HEIGHT_DEFAULT_PX;
 
   // Limit the minimum height of a track, and also round up to the nearest
@@ -123,16 +122,10 @@ export class TrackView {
     } = attrs;
     const {node, renderer, height} = this;
 
-    const description = renderer?.desc.description;
-
     const buttons = attrs.lite
       ? []
       : [
           renderer?.track.getTrackShellButtons?.(),
-          description !== undefined &&
-            this.renderHelpButton(
-              typeof description === 'function' ? description() : description,
-            ),
           (removable || node.removable) && this.renderCloseButton(),
           // We don't want summary tracks to be pinned as they rarely have
           // useful information.
@@ -342,20 +335,6 @@ export class TrackView {
       title: isPinned ? 'Unpin' : 'Pin to top',
       compact: true,
     });
-  }
-
-  private renderHelpButton(helpText: m.Children): m.Children {
-    return m(
-      Popup,
-      {
-        trigger: m(Button, {
-          className: classNames('pf-visible-on-hover'),
-          icon: Icons.Help,
-          compact: true,
-        }),
-      },
-      helpText,
-    );
   }
 
   private renderTrackMenuButton(): m.Children {
@@ -659,6 +638,8 @@ function renderTrackDetailsMenu(node: TrackNode, descriptor?: Track) {
       }),
       m(TreeNode, {left: 'Path', right: fullPath}),
       m(TreeNode, {left: 'Name', right: node.name}),
+      descriptor &&
+        m(TreeNode, {left: 'Description', right: descriptor?.description}),
       m(TreeNode, {
         left: 'Workspace',
         right: node.workspace?.title ?? '[no workspace]',

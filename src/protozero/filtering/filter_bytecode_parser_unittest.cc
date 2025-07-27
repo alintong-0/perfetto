@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-#include "perfetto/ext/base/fnv_hash.h"
+#include "test/gtest_and_gmock.h"
 
+#include "perfetto/ext/base/hash.h"
 #include "perfetto/protozero/packed_repeated_fields.h"
+#include "perfetto/protozero/scattered_heap_buffer.h"
 #include "src/protozero/filtering/filter_bytecode_common.h"
 #include "src/protozero/filtering/filter_bytecode_parser.h"
-#include "test/gtest_and_gmock.h"
 
 namespace protozero {
 
@@ -27,7 +28,7 @@ namespace {
 
 bool LoadBytecode(FilterBytecodeParser* parser,
                   std::initializer_list<uint32_t> bytecode) {
-  perfetto::base::FnvHasher hasher;
+  perfetto::base::Hasher hasher;
   protozero::PackedVarInt words;
   for (uint32_t w : bytecode) {
     words.Append(w);
