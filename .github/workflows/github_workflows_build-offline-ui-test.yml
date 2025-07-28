@@ -1,0 +1,65 @@
+name: Build & Release Perfetto UI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # 允许在 Actions 页面用下拉选择分支
+          ref: ${{ github.ref_name }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install build deps
+        run: sudo apt-get update && sudo apt-get install -y build-essential clang pkg-config git python3-pip
+
+      - name: Install depot_tools
+        run: |
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+          echo "${GITHUB_WORKSPACE}/depot_tools" >> $GITHUB_PATH
+
+      - name: Install perfetto build deps (gn/ninja etc)
+        run: |
+          tools/install-build-deps --ui
+
+      - name: Build
+        run: ui/build
+
+      - name: Detect Perfetto UI version
+        id: perfetto_version
+        run: |
+          cd ui/out/dist/
+          ver=$(ls -d v* | head -n1)
+          echo "version=$ver" >> $GITHUB_OUTPUT
+
+      - name: List dist files
+        run: ls -l ui/out/dist/${{ steps.perfetto_version.outputs.version }} || true
+
+      - name: Zip offline UI
+        run: |
+          cd ui/out/dist
+          zip -r perfetto-ui-${{ steps.perfetto_version.outputs.version }}-${{ github.ref_name }}.zip ${{ steps.perfetto_version.outputs.version }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: perfetto-ui-${{ steps.perfetto_version.outputs.version }}-${{ github.ref_name }}
+          name: Perfetto UI ${{ steps.perfetto_version.outputs.version }} (${{ github.ref_name }})
+          body: |
+            自动构建的 Perfetto 离线 UI 包，基于分支: ${{ github.ref_name }}
+          files: ui/out/dist/perfetto-ui-${{ steps.perfetto_version.outputs.version }}-${{ github.ref_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
